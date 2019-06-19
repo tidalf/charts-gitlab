@@ -229,6 +229,12 @@ kubectl create secret generic smtp-password --from-literal=password=yourpassword
 
 Then use `--set global.smtp.password.secret=smtp-password` in your helm command.
 
+NOTE: **Note**
+
+Do NOT use the actual password in `--set global.smtp.password.secret=smtp-password`.
+These arguments should be left as-is. `smtp-password` is the **name** of the Kubernetes
+secret, not the actual password.
+
 ### IMAP password for incoming emails
 
 To let GitLab have access to [incoming emails](https://docs.gitlab.com/ee/administration/incoming_email.html)
