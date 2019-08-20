@@ -153,3 +153,43 @@ Our [nginx-ingress chart][] was altered from upstream [nginx-ingress][].
 
 [nginx-ingress chart]: ../charts/nginx/index.md
 [nginx-ingress]: https://github.com/kubernetes/charts/tree/master/stable/nginx-ingress
+
+## GitLab Docker Images
+
+The GitLab application is built using Docker images that contain GitLab
+specific services. The build environments for these images can be found in
+the [CNG repository](https://gitlab.com/gitlab-org/build/CNG).
+
+The following GitLab components have images in the CNG repository.
+
+- Gitaly
+- Elasticsearch indexer
+- Mailroom
+- Monitor
+- GitLab-shell
+- Sidekiq
+- Gitlab task-runner
+- Unicorn
+- Workhorse
+
+Some of the above forked charts also use GitLab specific Docker images.
+
+- Redis-ha
+- Postgresql
+
+Docker images that are used for init containers and migrations.
+
+- alpine-certificates
+- kubectl
+
+### Kubernetes version used in kubectl container
+
+Given that the GitLab application could be installed on a wide range of
+Kubernetes versions the [kubectl][] container needs to support as many
+Kubernetes versions as possible. It is desired to keep the `kubectl`
+version one minor version lower than the current stable release of
+Kubernetes. This should allow at a minimum a coverage of three minor
+versions, but in most cases a larger range of Kubernetes versions should
+be supported.
+
+[kubectl]: https://gitlab.com/gitlab-org/build/CNG/tree/master/kubectl
