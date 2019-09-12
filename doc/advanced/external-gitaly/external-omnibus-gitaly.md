@@ -59,8 +59,8 @@ gitaly['listen_addr'] = "0.0.0.0:8075"
 
 # To use TLS for Gitaly you need to add
 gitaly['tls_listen_addr'] = "0.0.0.0:9999"
-gitaly['certificate_path'] = "path/to/cert.pem"
-gitaly['key_path'] = "path/to/key.pem"
+gitaly['certificate_path'] = "/etc/gitlab/ssl/cert.pem"
+gitaly['key_path'] = "/etc/gitlab/ssl/key.pem"
 
 gitaly['storage'] = [
   { 'name' => 'default', 'path' => '/mnt/gitlab/default/repositories' },
