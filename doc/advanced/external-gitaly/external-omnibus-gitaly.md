@@ -48,7 +48,7 @@ gitlab_rails['auto_migrate'] = false
 gitlab_rails['internal_api_url'] = 'GITLAB_URL'
 gitlab_shell['secret_token'] = 'SHELL_TOKEN'
 
-# Authentication token to ensure only authorized servers can communicate with 
+# Authentication token to ensure only authorized servers can communicate with
 # Gitaly server
 gitaly['auth_token'] = 'AUTH_TOKEN'
 
