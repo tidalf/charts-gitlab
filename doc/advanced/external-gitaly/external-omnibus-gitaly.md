@@ -48,20 +48,24 @@ gitlab_rails['auto_migrate'] = false
 gitlab_rails['internal_api_url'] = 'GITLAB_URL'
 gitlab_shell['secret_token'] = 'SHELL_TOKEN'
 
-# Make Gitaly accept connections on all network interfaces. You must use
-# firewalls to restrict access to this address/port.
-gitaly['listen_addr'] = "0.0.0.0:8075"
+# Authentication token to ensure only authorized servers can communicate with 
+# Gitaly server
 gitaly['auth_token'] = 'AUTH_TOKEN'
 
-gitaly['storage'] = [
-  { 'name' => 'default', 'path' => '/mnt/gitlab/default/repositories' },
-  { 'name' => 'storage1', 'path' => '/mnt/gitlab/storage1/repositories' },
-]
+# Make Gitaly accept connections on all network interfaces. You must use
+# firewalls to restrict access to this address/port.
+# Comment out following line if you only want to support TLS connections
+gitaly['listen_addr'] = "0.0.0.0:8075"
 
 # To use TLS for Gitaly you need to add
 gitaly['tls_listen_addr'] = "0.0.0.0:9999"
 gitaly['certificate_path'] = "path/to/cert.pem"
 gitaly['key_path'] = "path/to/key.pem"
+
+gitaly['storage'] = [
+  { 'name' => 'default', 'path' => '/mnt/gitlab/default/repositories' },
+  { 'name' => 'storage1', 'path' => '/mnt/gitlab/storage1/repositories' },
+]
 ```
 
 After creating `gitlab.rb`, reconfigure the package with `gitlab-ctl reconfigure`. Once the task has completed, check the running processes with `gitlab-ctl status`. The output should appear as such:
