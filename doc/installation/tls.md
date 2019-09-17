@@ -41,7 +41,7 @@ helm install ...
 To make use of an external `cert-manager` and `Issuer` resource you must provide several items, so that self-signed certificates
 are not activated.
 
-1. Annotations to activate the external `cert-manager` (see [documentation](cm-annotations) for further details)
+1. Annotations to activate the external `cert-manager` (see [documentation][cm-annotations] for further details)
 1. Names of TLS secrets for each service (this deactivates [self-signed behaviors](#option-4-use-auto-generated-self-signed-wildcard-certificate))
 
 ```
@@ -63,6 +63,7 @@ kubectl create secret tls <tls-secret-name> --cert=<path/to-full-chain.crt> --ke
 ```
 
 Include the option to
+
 ```
 helm install ...
   --set certmanager.install=false \
@@ -104,4 +105,4 @@ accessible services. The secrets containing these will be `RELEASE-wildcard-tls`
 The `RELEASE-wildcard-tls-ca` contains the public CA certificate that can be distributed to users and systems that
 will access the deployed GitLab instance.
 
-[cm-annotations]: https://github.com/jetstack/cert-manager/blob/master/docs/reference/ingress-shim.rst#supported-annotations
+[cm-annotations]: https://github.com/jetstack/cert-manager/blob/master/docs/tasks/issuing-certificates/ingress-shim.rst#supported-annotations

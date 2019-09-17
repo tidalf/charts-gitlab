@@ -2,42 +2,69 @@ require_relative 'version'
 
 require 'open-uri'
 require 'uri'
+require 'cgi'
 
 class VersionFetcher
-  class << self
+  def initialize(version, repo)
+    @version = Version.new(version)
+    @repo = repo
+    @api_token = ENV['FETCH_DEV_ARTIFACTS_PAT']
+    @api_url = if @repo.start_with?('gitlab/')
+                 'https://dev.gitlab.org/api/v4'
+               elsif @repo.start_with?('gitlab-org/')
+                 'https://gitlab.com/api/v4'
+               else
+                 ENV['CI_API_V4_URL']
+               end
+  end
 
-    # GitLab Shell Version
-    def gitlab_shell(version)
-      return version if version == 'master'
+  # GitLab Shell Version
+  def gitlab_shell
+    return @version if @version.nil? || @version == 'master'
 
-      new_version = URI.parse("https://gitlab.com/gitlab-org/gitlab-ee/raw/#{ref(version)}/GITLAB_SHELL_VERSION").read.strip
-      $stdout.puts "# Shell appVersion: #{new_version}"
-      new_version
+    url = "#{@api_url}/projects/#{CGI.escape(@repo)}/repository/files/GITLAB_SHELL_VERSION/raw?ref=#{ref(@version)}"
+    $stdout.puts "Getting GitLab Shell version from #{url}"
+    new_version = open(url, 'PRIVATE-TOKEN' => @api_token).read.strip
+    $stdout.puts "# Shell appVersion: #{new_version}"
+    Version.new(new_version)
+  end
+
+  # Gitaly Version
+  def gitaly
+    return @version if @version.nil? || @version == 'master'
+
+    url = "#{@api_url}/projects/#{CGI.escape(@repo)}/repository/files/GITALY_SERVER_VERSION/raw?ref=#{ref(@version)}"
+    $stdout.puts "Getting Gitaly version from #{url}"
+    new_version = open(url, 'PRIVATE-TOKEN' => @api_token).read.strip
+    $stdout.puts "# Gitaly appVersion: #{new_version}"
+    Version.new(new_version)
+  end
+
+  # GitLab Monitor Version
+  def gitlab_monitor
+    # Don't edit the appVersion, it get's set manually as monitor isn't released by release-tools
+    nil
+  end
+
+  def fetch(chart_name)
+    chart_name = chart_name.tr('-', '_').to_sym
+
+    # Return the fetch result for the chart if it's defined
+    # Otherwise return the parent chart's version
+    if respond_to?(chart_name)
+      send(chart_name)
+    else
+      @version
     end
+  end
 
-    # Gitaly Version
-    def gitaly(version)
-      return version if version == 'master'
+  private
 
-      new_version = URI.parse("https://gitlab.com/gitlab-org/gitlab-ee/raw/#{ref(version)}/GITALY_SERVER_VERSION").read.strip
-      $stdout.puts "# Gitaly appVersion: #{new_version}"
-      new_version
-    end
-
-    def fetch(chart_name, ref)
-      chart_name = chart_name.tr('-', '_').to_sym
-      return ref unless respond_to?(chart_name)
-      Version.new(send(chart_name, ref)) if ref
-    end
-
-    private
-
-    def ref(version)
-      if version.valid?
-        version.tag(ee: true)
-      else
-        version.to_s
-      end
+  def ref(version)
+    if version.valid?
+      version.tag(ee: true)
+    else
+      version.to_s
     end
   end
 end

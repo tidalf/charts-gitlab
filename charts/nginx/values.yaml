@@ -16,7 +16,8 @@ controller:
 
   config: {}
   # Will add custom header to Nginx https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/customization/custom-headers
-  headers: {}
+  headers:
+    Referrer-Policy: strict-origin-when-cross-origin
 
   # Required for use with CNI based kubernetes installations (such as ones set up by kubeadm),
   # since CNI and hostport don't mix yet. Can be deprecated once https://github.com/kubernetes/kubernetes/issues/23920
@@ -163,6 +164,7 @@ controller:
   service:
     annotations: {}
     labels: {}
+    omitClusterIP: false
     clusterIP: ""
 
     ## List of IP addresses at which the controller services are available
@@ -242,6 +244,7 @@ controller:
 
     service:
       annotations: {}
+      omitClusterIP: false
       clusterIP: ""
 
       ## List of IP addresses at which the stats service is available
@@ -264,6 +267,7 @@ controller:
       # prometheus.io/scrape: "true"
       # prometheus.io/port: "10254"
 
+      omitClusterIP: false
       clusterIP: ""
 
       ## List of IP addresses at which the stats-exporter service is available
@@ -340,6 +344,7 @@ defaultBackend:
 
   service:
     annotations: {}
+    omitClusterIP: false
     clusterIP: ""
 
     ## List of IP addresses at which the default backend service is available

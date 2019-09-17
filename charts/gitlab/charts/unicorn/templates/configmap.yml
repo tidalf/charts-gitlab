@@ -16,20 +16,26 @@ data:
       database: {{ template "gitlab.psql.database" . }}
       pool: 10
       username: {{ template "gitlab.psql.username" . }}
-      password: <%= File.read("/etc/gitlab/postgres/psql-password") %>
+      password: "<%= File.read("/etc/gitlab/postgres/psql-password").strip.dump[1..-2] %>"
       host: {{ template "gitlab.psql.host" . }}
       port: {{ template "gitlab.psql.port" . }}
+      prepared_statements: {{ template "gitlab.psql.preparedStatements" . }}
       # load_balancing:
       #   hosts:
       #     - host1.example.com
       #     - host2.example.com
+{{- include "gitlab.psql.ssl.config" . | indent 6 }}
   smtp_settings.rb: |
 {{ include "gitlab.smtp_settings" . | indent 4 }}
   resque.yml.erb: |
     production:
       # Redis (single instance)
-      url: {{ template "gitlab.redis.scheme" . }}://:<%= File.read("/etc/gitlab/redis/password") %>@{{ template "gitlab.redis.host" . }}:{{ template "gitlab.redis.port" . }}
+      url: {{ template "gitlab.redis.url" . }}
+      id:
   unicorn.rb: |
+    # This file should be equivalent to `unicorn.rb` from:
+    # * gitlab-ce: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/config/unicorn.rb.example
+    # * omnibus: https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/files/gitlab-cookbooks/gitlab/templates/default/unicorn.rb.erb
     worker_processes {{ .Values.workerProcesses }}
     working_directory "/srv/gitlab"
     listen "0.0.0.0:{{ .Values.service.internalPort }}", :tcp_nopush => true
@@ -37,7 +43,37 @@ data:
     pid "/home/git/unicorn.pid"
     preload_app true
 
+    require_relative "/srv/gitlab/lib/gitlab/cluster/lifecycle_events"
+
+    before_exec do |server|
+      # Signal application hooks that we're about to restart
+      Gitlab::Cluster::LifecycleEvents.do_master_restart
+    end
+
+    run_once = true
     before_fork do |server, worker|
+      if run_once
+        # There is a difference between Puma and Unicorn:
+        # - Puma calls before_fork once when booting up master process
+        # - Unicorn runs before_fork whenever new work is spawned
+        # To unify this behavior we call before_fork only once (we use
+        # this callback for deleting Prometheus files so for our purposes
+        # it makes sense to align behavior with Puma)
+        run_once = false
+
+        # Signal application hooks that we're about to fork
+        Gitlab::Cluster::LifecycleEvents.do_before_fork
+      end
+
+      # The following is only recommended for memory/DB-constrained
+      # installations.  It is not needed if your system can house
+      # twice as many worker_processes as you have configured.
+      #
+      # This allows a new master process to incrementally
+      # phase out the old master process with SIGTTOU to avoid a
+      # thundering herd (especially in the "preload_app false" case)
+      # when doing a transparent upgrade.  The last worker spawned
+      # will then kill off the old master process with a SIGQUIT.
       old_pid = "#{server.config[:pid]}.oldbin"
       if old_pid != server.pid
         begin
@@ -46,17 +82,25 @@ data:
         rescue Errno::ENOENT, Errno::ESRCH
         end
       end
-
-      ActiveRecord::Base.connection.disconnect! if defined?(ActiveRecord::Base)
+      #
+      # Throttle the master from forking too quickly by sleeping.  Due
+      # to the implementation of standard Unix signal handlers, this
+      # helps (but does not completely) prevent identical, repeated signals
+      # from being lost when the receiving process is busy.
+      # sleep 1
     end
 
     after_fork do |server, worker|
-      ActiveRecord::Base.establish_connection if defined?(ActiveRecord::Base)
-      defined?(::Prometheus::Client.reinitialize_on_pid_change) && Prometheus::Client.reinitialize_on_pid_change
+      # Signal application hooks of worker start
+      Gitlab::Cluster::LifecycleEvents.do_worker_start
+
+      # per-process listener ports for debugging/admin/migrations
+      # addr = "127.0.0.1:#{9293 + worker.nr}"
+      # server.listen(addr, :tries => -1, :delay => 5, :tcp_nopush => true)
     end
 
-    ENV['GITLAB_UNICORN_MEMORY_MIN'] = (400 * 1 << 20).to_s
-    ENV['GITLAB_UNICORN_MEMORY_MAX'] = (650 * 1 << 20).to_s
+    ENV['GITLAB_UNICORN_MEMORY_MIN'] = ({{ int .Values.memory.min }} * 1 << 20).to_s
+    ENV['GITLAB_UNICORN_MEMORY_MAX'] = ({{ int .Values.memory.max }} * 1 << 20).to_s
 
   gitlab.yml.erb: |
     production: &base
@@ -87,48 +131,36 @@ data:
         email_subject_suffix: {{ .Values.global.email.subject_suffix | quote }}
       {{- with .Values.global.appConfig }}
       {{- if eq .incomingEmail.enabled true }}
-      incoming_email:
-        enabled: {{ eq .incomingEmail.enabled true }}
-        address: {{ .incomingEmail.address | quote }}
+{{ include "gitlab.appConfig.incoming_email" . | indent 6 }}
       {{- end }}
+      {{- include "gitlab.appConfig.cronJobs" . | nindent 6 }}
       gravatar:
         plain_url: {{ .gravatar.plainUrl }}
         ssl_url: {{ .gravatar.sslUrl }}
-      extra:
-        google_analytics_id: {{ .extra.googleAnalyticsId | quote }}
-        piwik_url: {{ .extra.piwikUrl | quote }}
-        piwik_site_id: {{ .extra.piwikSiteId | quote }}
+{{ include "gitlab.appConfig.extra" . | indent 6 }}
       {{- end }}
-      {{- include "gitlab.appConfig.objectStorage.configuration" (dict "name" "artifacts" "config" $.Values.global.appConfig.artifacts "context" $) | nindent 6 }}
-      {{- include "gitlab.appConfig.objectStorage.configuration" (dict "name" "lfs" "config" $.Values.global.appConfig.lfs "context" $) | nindent 6 }}
-      {{- include "gitlab.appConfig.objectStorage.configuration" (dict "name" "uploads" "config" $.Values.global.appConfig.uploads "context" $) | nindent 6 }}
-      {{- include "gitlab.appConfig.objectStorage.configuration" (dict "name" "packages" "config" $.Values.global.appConfig.packages "context" $) | nindent 6 }}
+      {{- include "gitlab.appConfig.artifacts.configuration" (dict "config" $.Values.global.appConfig.artifacts "context" $) | nindent 6 }}
+      {{- include "gitlab.appConfig.lfs.configuration" (dict "config" $.Values.global.appConfig.lfs "context" $) | nindent 6 }}
+      {{- include "gitlab.appConfig.uploads.configuration" (dict "config" $.Values.global.appConfig.uploads "context" $) | nindent 6 }}
+      {{- include "gitlab.appConfig.packages.configuration" (dict "config" $.Values.global.appConfig.packages "context" $) | nindent 6 }}
+      {{- include "gitlab.appConfig.external_diffs.configuration" (dict "config" $.Values.global.appConfig.externalDiffs "context" $) | nindent 6 }}
       pages:
         enabled: false
       mattermost:
         enabled: false
-      gravatar:
       gitlab_ci:
       {{- include "gitlab.appConfig.ldap.configuration" $ | nindent 6 }}
       {{- include "gitlab.appConfig.omniauth.configuration" $ | nindent 6 }}
       kerberos:
         enabled: false
       shared:
-      gitaly:
-        client_path: /home/git/gitaly/bin
-        token: "<%= File.read('/etc/gitlab/gitaly/gitaly_token') %>"
-      repositories:
-        storages: # You must have at least a `default` storage path.
-{{ include "gitlab.gitaly.storages" . | indent 10 }}
+{{ include "gitlab.appConfig.gitaly" . | indent 6 }}
+{{ include "gitlab.appConfig.repositories" . | indent 6 }}
       backup:
         path: "tmp/backups"   # Relative paths are relative to Rails.root (default: tmp/backups/)
-      gitlab_shell:
-        path: /home/git/gitlab-shell/
-        hooks_path: /home/git/gitlab-shell/hooks/
-        secret_file: /etc/gitlab/shell/.gitlab_shell_secret
-        upload_pack: true
-        receive_pack: true
-        ssh_port: {{ include "gitlab.shell.port" . | int }}
+{{ include "gitlab.appConfig.shell" . | indent 6 }}
+{{ include "gitlab.appConfig.shell.ssh_port" . | indent 8 }}
+{{ include "gitlab.appConfig.shell.secret_file" . | indent 8 }}
       workhorse:
         secret_file: /etc/gitlab/gitlab-workhorse/secret
       git:
@@ -138,42 +170,12 @@ data:
         ip_whitelist:
           - 0.0.0.0/0
         sidekiq_exporter:
-      extra:
-        {{- if .Values.extra }}
-{{ toYaml .Values.extra | indent 8 }}
-        {{- end }}
-      rack_attack:
-        git_basic_auth:
-          {{- if .Values.rack_attack.git_basic_auth.enabled }}
-{{ toYaml .Values.rack_attack.git_basic_auth | indent 10 }}
-          {{- end }}
+{{ include "gitlab.appConfig.rackAttack" . | indent 6 }}
       ## Registry Integration
       {{- include "gitlab.appConfig.registry.configuration" $ | nindent 6 }}
   configure: |
-      set -e
-      config_dir="/init-config"
-      secret_dir="/init-secrets-unicorn"
-
-      for secret in redis shell gitaly registry postgres rails-secrets gitlab-workhorse ; do
-        mkdir -p "${secret_dir}/${secret}"
-        cp -v -r "${config_dir}/${secret}/." "${secret_dir}/${secret}/"
-      done
-      if [ -e "${config_dir}/minio" ]; then
-        mkdir -p "${secret_dir}/minio"
-        cp -v -r "${config_dir}/minio/." "${secret_dir}/minio/"
-      fi
-      if [ -e "${config_dir}/objectstorage" ]; then
-        mkdir -p "${secret_dir}/objectstorage"
-        cp -v -r "${config_dir}/objectstorage/." "${secret_dir}/objectstorage/"
-      fi
-      if [ -e "${config_dir}/omniauth" ]; then
-        mkdir -p "${secret_dir}/omniauth"
-        cp -v -r "${config_dir}/omniauth/." "${secret_dir}/omniauth/"
-      fi
-      if [ -e "${config_dir}/smtp/smtp-password" ]; then
-        mkdir -p "${secret_dir}/smtp"
-        cp -v -r "${config_dir}/smtp/smtp-password" "${secret_dir}/smtp/"
-      fi
+    {{- include "gitlab.scripts.configure.secrets" (dict) | nindent 4 -}}
+    {{- include "gitlab.psql.ssl.initScript" . | nindent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -188,12 +190,16 @@ data:
   workhorse-config.toml.erb: |
     [redis]
     URL = "{{ template "gitlab.redis.scheme" . }}://{{ template "gitlab.redis.host" . }}:{{ template "gitlab.redis.port" . }}"
-    Password = "<%= File.read("/etc/gitlab/redis/password") %>"
+    {{- if .Values.global.redis.password.enabled }}
+    Password = "<%= File.read("/etc/gitlab/redis/password").strip.dump[1..-2] %>"
+    {{- end }}
   configure: |
       set -e
       mkdir -p /init-secrets-workhorse/gitlab-workhorse
-      cp /init-config/gitlab-workhorse/secret /init-secrets-workhorse/gitlab-workhorse/secret
+      cp -v -r -L /init-config/gitlab-workhorse/secret /init-secrets-workhorse/gitlab-workhorse/secret
+      {{- if .Values.global.redis.password.enabled }}
       mkdir -p /init-secrets-workhorse/redis
-      cp /init-config/redis/password /init-secrets-workhorse/redis/
+      cp -v -r -L /init-config/redis/password /init-secrets-workhorse/redis/
+      {{- end }}
 # Leave this here - This line denotes end of block to the parser.
 {{- end }}

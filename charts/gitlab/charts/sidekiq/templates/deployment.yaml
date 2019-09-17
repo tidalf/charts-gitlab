@@ -66,6 +66,10 @@ spec:
 {{ toYaml $metricsAnnotations | indent 8 }}
 {{- end }}
     spec:
+      {{- if $.Values.tolerations }}
+      tolerations:
+{{ toYaml $.Values.tolerations | indent 8 }}
+      {{- end }}
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
@@ -98,14 +102,15 @@ spec:
           image: {{ $initImage }}:{{ $initTag }}
           volumeMounts:
 {{ include "gitlab.extraVolumeMounts" $ | indent 10 }}
+{{ include "gitlab.psql.ssl.volumeMount" $ | indent 10 }}
           - name: sidekiq-config
             mountPath: /config
             readOnly: true
           - name: init-sidekiq-secrets
-            mountPath: /init-secrets
+            mountPath: /init-config
             readOnly: true
           - name: sidekiq-secrets
-            mountPath: /sidekiq-secrets
+            mountPath: /init-secrets
             readOnly: false
           resources:
 {{ toYaml $.Values.init.resources | indent 12 }}
@@ -160,6 +165,12 @@ spec:
               value: {{ default $concurrency .concurrency | quote }}
             - name: SIDEKIQ_TIMEOUT
               value: {{ default $timeout .timeout | quote }}
+            - name: SIDEKIQ_MEMORY_KILLER_MAX_RSS
+              value: {{ int $.Values.memoryKiller.maxRss | quote }}
+            - name: SIDEKIQ_MEMORY_KILLER_GRACE_TIME
+              value: {{ int $.Values.memoryKiller.graceTime | quote }}
+            - name: SIDEKIQ_MEMORY_KILLER_SHUTDOWN_WAIT
+              value: {{ int $.Values.memoryKiller.shutdownWait | quote }}
 {{- if $metricsEnabled }}
           ports:
           - containerPort: {{ $metricsPort }}
@@ -207,6 +218,7 @@ spec:
 {{ toYaml ( default $resources .resources ) | indent 12 }}
       volumes:
 {{ include "gitlab.extraVolumes" $ | indent 6 }}
+{{ include "gitlab.psql.ssl.volume" $ | indent 6 }}
 {{- if $metricsEnabled }}
       - name: sidekiq-metrics
         emptyDir:
@@ -237,11 +249,13 @@ spec:
               items:
                 - key: {{ $gitalyKey }}
                   path: gitaly/gitaly_token
+          {{- if $.Values.global.redis.password.enabled }}
           - secret:
               name: {{ $redisSecret }}
               items:
                 - key: {{ $redisKey }}
                   path: redis/password
+          {{- end }}
           - secret:
               name: {{ template "gitlab.psql.password.secret" $ }}
               items:
@@ -257,7 +271,9 @@ spec:
           {{- include "gitlab.appConfig.objectStorage.mountSecrets" (dict "name" "artifacts" "config" $.Values.global.appConfig.artifacts) | nindent 10 }}
           {{- include "gitlab.appConfig.objectStorage.mountSecrets" (dict "name" "uploads" "config" $.Values.global.appConfig.uploads) | nindent 10 }}
           {{- include "gitlab.appConfig.objectStorage.mountSecrets" (dict "name" "packages" "config" $.Values.global.appConfig.packages) | nindent 10 }}
+          {{- include "gitlab.appConfig.objectStorage.mountSecrets" (dict "name" "external_diffs" "config" $.Values.global.appConfig.externalDiffs) | nindent 10 }}
           {{- include "gitlab.appConfig.pseudonymizer.mountSecrets" $ | nindent 10 }}
+          {{- include "gitlab.appConfig.ldap.servers.mountSecrets" $ | nindent 10 }}
           {{- include "gitlab.appConfig.omniauth.mountSecrets" $ | nindent 10 }}
           {{- if and $.Values.global.smtp.enabled $.Values.global.smtp.authentication }}
           - secret:

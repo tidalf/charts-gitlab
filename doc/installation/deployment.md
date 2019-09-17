@@ -21,6 +21,7 @@ objects. You'll need to specify a domain which will contain records to resolve
 `gitlab`, `registry`, and `minio` (if enabled) to the appropriate IP for your chart.
 
 *Include these options in your helm install command:*
+
 ```
 --set global.hosts.domain=example.com
 ```
@@ -40,11 +41,12 @@ static IP. For example if you choose `example.com` and you have a static IP
 of `10.10.10.10`, then `gitlab.example.com`, `registry.example.com` and
 `minio.example.com` (if using minio) should all resolve to `10.10.10.10`.
 
-If you are using GKE, there is some documentation [here](../cloud/gke.md#creating-the-external-ip)
+If you are using GKE, there is some documentation [here](cloud/gke.md#creating-the-external-ip)
 for configuring static IPs and DNS. Consult your Cloud and/or DNS provider's
 documentation for more help on this process.
 
 *Include these options in your helm install command:*
+
 ```
 --set global.hosts.externalIP=10.10.10.10
 ```
@@ -67,6 +69,7 @@ have some other way of obtaining TLS certificates, [read about more TLS options 
 For the default configuration, you must specify an email address to register your TLS
 certificates.
 *Include these options in your helm install command:*
+
 ```
 --set certmanager-issuer.email=me@example.com
 ```
@@ -87,7 +90,9 @@ If you have an external postgres database ready, the chart can be configured to
 use it as shown below.
 
 *Include these options in your helm install command:*
+
 ```
+--set postgresql.install=false
 --set global.psql.host=production.postgress.hostname.local
 --set global.psql.password.secret=kubernetes_secret_name
 --set global.psql.password.key=key_that_contains_postgres_password
@@ -98,6 +103,7 @@ use it as shown below.
 By default we use an single, non-replicated Redis instance. If desired, a highly available redis can be deployed instead. You can learn more about configuring: [Redis](../charts/redis) and [Redis-ha](../charts/redis-ha).
 
 *To deploy `redis-ha` instead of the default `redis`, include these options in your helm install command:*
+
 ```
 --set redis.enabled=false
 --set redis-ha.enabled=true
@@ -110,6 +116,39 @@ This configuration should not be used in production.
 
 You can read more about setting up your production-ready object storage in the [external object storage](../advanced/external-object-storage/index.md)
 
+### Prometheus
+
+We use the [upstream Prometheus chart][prometheus-configuration],
+and do not override values from our own defaults.
+We do, however, default disable `alertmanager`, `nodeExporter`, and
+`pushgateway`.
+
+Refer to the [Prometheus chart documentation][prometheus-configuration] for the
+exhaustive list of configuration options and ensure they are sub-keys to
+`prometheus`, as we use this as requirement chart.
+
+For instance, the requests for persistent storage can be controlled with:
+
+```yaml
+prometheus:
+  alertmanager:
+    enabled: false
+    persistentVolume:
+      enabled: false
+      size: 2GiB
+  pushgateway:
+    enabled: false
+    persistentVolume:
+      enabled: false
+      size: 2GiB
+  server:
+    persistentVolume:
+      enabled: true
+      size: 8GiB
+```
+
+[prometheus-configuration]: https://github.com/helm/charts/tree/master/stable/prometheus#configuration
+
 ### Outgoing email
 
 By default outgoing email is disabled. To enable it, provide details for your SMTP server
@@ -120,8 +159,8 @@ If your SMTP server requires authentication make sure to read the section on pro
 your password in the [secrets documentation](secrets.md#smtp-password).
 You can disable authentication settings with `--set global.smtp.authentication=""`.
 
-If your Kubernetes cluster is on GKE, be aware that smtp [ports 25, 465, and 587
-are blocked](https://cloud.google.com/compute/docs/tutorials/sending-mail/#using_standard_email_ports).
+If your Kubernetes cluster is on GKE, be aware that smtp [port 25
+is blocked](https://cloud.google.com/compute/docs/tutorials/sending-mail/#using_standard_email_ports).
 
 ### Incoming email
 
@@ -140,6 +179,7 @@ incoming email settings.
 By default, the Helm charts use the Enterprise Edition of GitLab. If desired, you can instead use the Community Edition. Learn more about the [difference between the two](https://about.gitlab.com/installation/ce-or-ee/).
 
 *To deploy the Community Edition, include this option in your helm install command:*
+
 ```
 --set global.edition=ce
 ```
@@ -147,6 +187,7 @@ By default, the Helm charts use the Enterprise Edition of GitLab. If desired, yo
 ### RBAC
 
 This chart defaults to creating and using RBAC. If your cluster does not have RBAC enabled, you will need to disable these settings:
+
 ```
 --set certmanager.rbac.create=false
 --set nginx-ingress.rbac.createRole=false
@@ -161,10 +202,10 @@ are set by default to be adequate for a small production deployment. This is int
 and 30gb of RAM. If you are trying to deploy a non-production instance, you can reduce the defaults in order to fit into
 a smaller cluster.
 
-The [minimal GKE example values file](../../examples/values-gke-minimum.yaml) provides an example of tuning the resources
+The [minimal GKE example values file](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/values-gke-minimum.yaml) provides an example of tuning the resources
 to fit within a 3vCPU 12gb cluster.
 
-The [minimal minikube example values file](../../examples/values-minikube-minimum.yaml) provides an example of tuning the
+The [minimal minikube example values file](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/values-minikube-minimum.yaml) provides an example of tuning the
 resources to fit within a 2vCPU, 4gb minikube instance.
 
 ## Deploy using helm
@@ -184,11 +225,11 @@ helm upgrade --install gitlab gitlab/gitlab \
 
 You can also use `--version <installation version>` option if you would like to install a specific version of GitLab.
 
-Mappings between chart versions and GitLab versions can be found [here](./version-mappings.md)
+Mappings between chart versions and GitLab versions can be found [here](../index.md#gitlab-version-mappings).
 
 Instructions for installing a development branch rather than a tagged release can be found in the [developer deploy documentation](../development/deploy.md).
 
-#### GitLab operator (experimental)
+### GitLab operator (experimental)
 
 If you would like to use GitLab operator to achieve zero downtime upgrades, please follow the [documentation for using the operator](./operator.md)
 
@@ -209,7 +250,7 @@ following command (replace `<name>` by name of the release - which is `gitlab`
 if you used the command above).
 
 ```
-kubectl get secret <name>-gitlab-initial-root-password -ojsonpath={.data.password} | base64 --decode ; echo
+kubectl get secret <name>-gitlab-initial-root-password -ojsonpath='{.data.password}' | base64 --decode ; echo
 ```
 
 [secret-gl-certs]: secrets.md#gitlab-certificates

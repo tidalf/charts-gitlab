@@ -20,8 +20,6 @@ chart:
 Compile all deprecations into a single message, and call fail.
 
 Due to gotpl scoping, we can't make use of `range`, so we have to add action lines.
-
-We then check the number of items in the array vs the string length. If the string length is larger than the size of the array, then we have message contents. We are assured of this because `join "\n"` will insert n-1 "\n" into the string, thus a 3 item array, with no contents will be turned into a 2 character string.
 */}}
 {{- define "gitlab.deprecations" -}}
 {{- $deprecated := list -}}
@@ -32,9 +30,16 @@ We then check the number of items in the array vs the string length. If the stri
 {{- $deprecated := append $deprecated (include "gitlab.deprecate.registryHttpSecret" .) -}}
 {{- $deprecated := append $deprecated (include "gitlab.deprecate.unicorn.omniauth" .) -}}
 {{- $deprecated := append $deprecated (include "gitlab.deprecate.unicorn.ldap" .) -}}
-{{/* prepare output, check lengths */}}
+{{- $deprecated := append $deprecated (include "gitlab.deprecate.global.appConfig.ldap.password" .) -}}
+{{- $deprecated := append $deprecated (include "gitlab.deprecate.sidekiq.cronJobs" .) -}}
+{{- $deprecated := append $deprecated (include "gitlab.deprecate.local.kubectl" .) -}}
+
+{{- /* prepare output */}}
+{{- $deprecated := without $deprecated "" -}}
 {{- $message := join "\n" $deprecated -}}
-{{- if lt (len $deprecated) (len $message) -}}
+
+{{- /* print output */}}
+{{- if $message -}}
 {{-   printf "\nDEPRECATIONS:\n%s" $message | fail -}}
 {{- end -}}
 {{- end -}}
@@ -134,3 +139,41 @@ unicorn:
 {{- end -}}
 {{- end -}}
 {{/* END deprecate.unicorn.ldap */}}
+
+{{- define "gitlab.deprecate.global.appConfig.ldap.password" -}}
+{{- if .Values.global.appConfig.ldap.servers -}}
+{{-   $hasPlaintextPassword := dict -}}
+{{-   range $name, $config := .Values.global.appConfig.ldap.servers -}}
+{{-     if and (hasKey $config "password") (kindIs "string" $config.password) -}}
+{{-       $_ := set $hasPlaintextPassword "true" "true" -}}
+{{-     end -}}
+{{-   end -}}
+{{-   if hasKey $hasPlaintextPassword "true" -}}
+global.appConfig.ldap:
+     Plain-text configuration of LDAP passwords has been deprecated in favor of secret configuration. Please create a secret containing the password, and set `password.secret` and `password.key`.
+{{-   end -}}
+{{- end -}}
+{{- end -}}{{/* "gitlab.deprecate.global.appConfig.ldap.password" */}}
+
+{{/* Deprecation behaviors for configuration of cron jobs */}}
+{{- define "gitlab.deprecate.sidekiq.cronJobs" -}}
+{{- if hasKey .Values.gitlab.sidekiq "cron_jobs" -}}
+sidekiq:
+    Chart-local configuration of cron jobs has been moved to global. Please remove `sidekiq.cron_jobs.*` settings from your properties, and set `global.appConfig.cron_jobs.*` instead.
+{{- end -}}
+{{- end -}}
+{{/* END deprecate.sidekiq.cronJobs */}}
+
+{{/* Deprecation behaviors for configuration of local kubectl images */}}
+{{- define "gitlab.deprecate.local.kubectl" -}}
+{{- range $chart := list "certmanager-issuer" "shared-secrets" -}}
+{{-   if hasKey (index $.Values $chart) "image" -}}
+{{ $chart }}:
+    Chart-local configuration of kubectl image has been moved to global. Please remove `{{ $chart }}.image.*` settings from your properties, and set `global.kubectl.image.*` instead.
+{{-     if and (eq $chart "shared-secrets") (hasKey (index $.Values $chart "image") "pullSecrets") }}
+    If you need to set `pullSecrets` of the self-sign image, please use `shared-secrets.selfsign.image.pullSecrets` instead.
+{{     end -}}
+{{-   end -}}
+{{- end -}}
+{{- end -}}
+{{/* END gitlab.deprecate.local.kubectl */}}

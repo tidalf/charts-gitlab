@@ -7,12 +7,18 @@ metadata:
   labels:
 {{ include "gitlab.standardLabels" . | indent 4 }}
 spec:
+  activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+  backoffLimit: {{ .Values.backoffLimit }}
   template:
     metadata:
       labels:
         app: {{ template "name" . }}
         release: {{ .Release.Name }}
     spec:
+      {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+      {{- end }}
       securityContext:
         runAsUser: 1000
         fsGroup: 1000
@@ -24,6 +30,7 @@ spec:
           image: {{ .Values.init.image }}:{{ .Values.init.tag }}
           volumeMounts:
 {{ include "gitlab.extraVolumeMounts" . | indent 10 }}
+{{ include "gitlab.psql.ssl.volumeMount" . | indent 10 }}
           - name: migrations-config
             mountPath: /config
             readOnly: true
@@ -75,6 +82,7 @@ spec:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
 {{ include "gitlab.extraVolumes" . | indent 6 }}
+{{ include "gitlab.psql.ssl.volume" . | indent 6 }}
       - name: migrations-config
         configMap:
           name: {{ template "fullname" . }}
@@ -88,10 +96,17 @@ spec:
                 - key: secrets.yml
                   path: rails-secrets/secrets.yml
           - secret:
+              name: {{ template "gitlab.gitaly.authToken.secret" . }}
+              items:
+                - key: {{ template "gitlab.gitaly.authToken.key" . }}
+                  path: gitaly/gitaly_token
+          {{- if .Values.global.redis.password.enabled }}
+          - secret:
               name: {{ template "gitlab.redis.password.secret" . }}
               items:
                 - key: {{ template "gitlab.redis.password.key" . }}
                   path: redis/password
+          {{- end }}
           - secret:
               name: {{ template "gitlab.psql.password.secret" . }}
               items:

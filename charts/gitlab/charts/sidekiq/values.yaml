@@ -14,6 +14,9 @@ init:
     requests:
       cpu: 50m
 
+# Tolerations for pod scheduling
+tolerations: []
+
 enabled: true
 
 annotations: {}
@@ -27,6 +30,12 @@ metrics:
 
 redis:
   password: {}
+
+# https://docs.gitlab.com/ee/administration/operations/sidekiq_memory_killer.html#sidekiq-memorykiller
+memoryKiller:
+  maxRss: 2000000
+  graceTime: 900
+  shutdownWait: 30
 
 global:
   # imagePullPolicy: IfNotPresent
@@ -48,9 +57,15 @@ global:
     # port: '5432'
     # database: 'gitlabhq_production'
     # username: 'gitlab'
+    # preparedStatements: false
     # password:
     #   secret: gitlab-postgres
     #   key: psql-password
+    # ssl:
+    #   secret: gitlab-ssl-secret
+    #   clientKey: client-key.pem
+    #   clientCertificate: client-cert.pem
+    #   serverCA: server-ca.pem
   redis:
     password: {}
   gitaly:
@@ -82,6 +97,11 @@ global:
       connection: {}
     packages:
       enabled: true
+      proxy_download: true
+      bucket:
+      connection: {}
+    externalDiffs:
+      when:
       proxy_download: true
       bucket:
       connection: {}
@@ -142,24 +162,6 @@ rack_attack:
     # maxretry: 10
     # findtime: 60
     # bantime: 3600
-
-cron_jobs: {}
-  # stuck_ci_jobs_worker:
-  #   cron: "0 * * * *"
-  # pipeline_schedule_worker:
-  #   cron: "19 * * * *"
-  # expire_build_artifacts_worker:
-  #   cron: "50 * * * *"
-  # repository_check_worker:
-  #   cron: "20 * * * *"
-  # admin_email_worker:
-  #   cron: "0 0 * * 0"
-  # repository_archive_cache_worker:
-  #   cron: "0 * * * *"
-  # pages_domain_verification_cron_worker:
-  #   cron: "*/15 * * * *"
-  # pseudonymizer_worker:
-  #   cron: "0 * * * *"
 
 trusted_proxies: []
 

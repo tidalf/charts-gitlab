@@ -12,7 +12,12 @@ init:
   resources:
     requests:
       cpu: 50m
+
+# Tolerations for pod scheduling
+tolerations: []
+
 annotations: {}
+
 metrics:
   enabled: true
   annotations:
@@ -38,6 +43,9 @@ ingress:
   annotations: {}
 workerProcesses: 2
 workerTimeout: 60
+memory: # in MB units
+  min: 700
+  max: 1024
 hpa:
   targetAverageValue: 1
 workhorse:
@@ -74,9 +82,15 @@ global:
     # port: '5432'
     # database: 'gitlabhq_production'
     # username: 'gitlab'
+    # preparedStatements: false
     # password:
     #   secret: gitlab-postgres
     #   key: psql-password
+    # ssl:
+    #   secret: gitlab-ssl-secret
+    #   clientKey: client-key.pem
+    #   clientCertificate: client-cert.pem
+    #   serverCA: server-ca.pem
   redis:
     # host: '0.0.0.0'
     password: {}
@@ -109,6 +123,11 @@ global:
       connection: {}
     packages:
       enabled: true
+      proxy_download: true
+      bucket:
+      connection: {}
+    externalDiffs:
+      when:
       proxy_download: true
       bucket:
       connection: {}
@@ -180,3 +199,5 @@ resources:
 maxUnavailable: 1
 minReplicas: 2
 maxReplicas: 10
+helmTests:
+  enabled: true

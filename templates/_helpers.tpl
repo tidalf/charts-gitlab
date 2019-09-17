@@ -103,8 +103,9 @@ Global gitlab imagePullPolicy
 */}}
 
 {{- define "gitlab.imagePullPolicy" -}}
-{{- if or .Values.image.pullPolicy .Values.global.imagePullPolicy -}}
-imagePullPolicy: {{ coalesce .Values.image.pullPolicy .Values.global.imagePullPolicy | quote }}
+{{- $imageObj := default (dict) .Values.image -}}
+{{- if or $imageObj.pullPolicy .Values.global.imagePullPolicy -}}
+imagePullPolicy: {{ coalesce $imageObj.pullPolicy .Values.global.imagePullPolicy | quote }}
 {{- end -}}
 {{- end -}}
 
@@ -121,13 +122,16 @@ certmanager.k8s.io/issuer: "{{ .Release.Name }}-issuer"
 {{/*
 Return the db hostname
 If an external postgresl host is provided, it will use that, otherwise it will fallback
-to the service name
+to the service name. Failing a specified service name it will fall back to the default service name.
+
 This overrides the upstream postegresql chart so that we can deterministically
 use the name of the service the upstream chart creates
 */}}
 {{- define "gitlab.psql.host" -}}
 {{- if .Values.global.psql.host -}}
 {{- .Values.global.psql.host | quote -}}
+{{- else if .Values.global.psql.serviceName -}}
+{{- .Values.global.psql.serviceName | quote -}}
 {{- else -}}
 {{- printf "%s-%s" .Release.Name "postgresql" -}}
 {{- end -}}
@@ -161,7 +165,7 @@ Alias of gitlab.psql.host
 Return the db database name
 */}}
 {{- define "gitlab.psql.database" -}}
-{{- coalesce .Values.global.psql.database "gitlabhq_production" | quote -}}
+{{- coalesce .Values.global.psql.database "gitlabhq_production" -}}
 {{- end -}}
 
 {{/*
@@ -185,7 +189,7 @@ to 5432 default
 {{/*
 Return the secret name
 Defaults to a release-based name and falls back to .Values.global.psql.secretName
-  when using an external postegresql
+  when using an external PostgreSQL
 */}}
 {{- define "gitlab.psql.password.secret" -}}
 {{- default (printf "%s-%s" .Release.Name "postgresql-password") .Values.global.psql.password.secret | quote -}}
@@ -205,6 +209,14 @@ Uses `postgresql-password` to match upstream postgresql chart when not using an
 */}}
 {{- define "gitlab.psql.password.key" -}}
 {{- default "postgresql-password" .Values.global.psql.password.key | quote -}}
+{{- end -}}
+
+{{/*
+Return if prepared statements should be used by PostgreSQL.
+Defaults to false
+*/}}
+{{- define "gitlab.psql.preparedStatements" -}}
+{{- eq true (default false .Values.global.psql.preparedStatements) -}}
 {{- end -}}
 
 {{/* ######### ingress templates */}}
@@ -237,6 +249,16 @@ Handles merging a set of service annotations
 */}}
 {{- define "gitlab.serviceAnnotations" -}}
 {{- $allAnnotations := merge (default (dict) (default (dict) .Values.service).annotations) .Values.global.service.annotations -}}
+{{- if $allAnnotations -}}
+{{- toYaml $allAnnotations -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Handles merging a set of deployment annotations
+*/}}
+{{- define "gitlab.deploymentAnnotations" -}}
+{{- $allAnnotations := merge (default (dict) (default (dict) .Values.deployment).annotations) .Values.global.deployment.annotations -}}
 {{- if $allAnnotations -}}
 {{- toYaml $allAnnotations -}}
 {{- end -}}
@@ -318,4 +340,11 @@ Return true in any other case.
 {{- else }}
 {{-   true }}
 {{- end -}}
+{{- end -}}
+
+{{/*
+Constructs kubectl image name.
+*/}}
+{{- define "gitlab.kubectl.image" -}}
+{{- printf "%s:%s" .Values.global.kubectl.image.repository .Values.global.kubectl.image.tag -}}
 {{- end -}}
