@@ -237,10 +237,9 @@ redis-ha:
 
 postgresql:
   install: true
-  postgresqlUsername: gitlab
   postgresqlDatabase: gitlabhq_production
   image:
-    tag: 9.6.11-r53
+    tag: 10.9.0
   usePasswordFile: true
   existingSecret: 'secret'
   initdbScriptsConfigMap: 'configmap'
