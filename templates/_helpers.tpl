@@ -196,6 +196,13 @@ Defaults to a release-based name and falls back to .Values.global.psql.secretNam
 {{- end -}}
 
 {{/*
+Return the superuser secret name
+*/}}
+{{- define "gitlab.psql.password.superuser_secret" -}}
+{{- default (printf "%s-%s" .Release.Name "postgresql-superuser-password") .Values.global.psql.password.superuser_secret | quote -}}
+{{- end -}}
+
+{{/*
 Alias of gitlab.psql.password.secret to override upstream postgresql chart naming
 */}}
 {{- define "postgresql.secretName" -}}
