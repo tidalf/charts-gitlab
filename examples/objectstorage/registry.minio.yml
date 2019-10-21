@@ -1,0 +1,3 @@
+host: storage.example.com
+endpoint: "https://minio.example.com:9000"
+path_style: true
