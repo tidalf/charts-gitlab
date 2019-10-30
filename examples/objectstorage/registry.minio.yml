@@ -1,3 +1,17 @@
-host: storage.example.com
-endpoint: "https://minio.example.com:9000"
-path_style: true
+# Example configuration of registry `storage` secret
+# Example for Minio storage
+#   See https://medium.com/@enne/use-minio-as-docker-registry-storage-driver-c9c72c72cc87
+#   See https://gitlab.com/gitlab-org/charts/gitlab/tree/master/doc/charts/registry/#storage
+#   See https://gitlab.com/gitlab-org/charts/gitlab/blob/master/doc/advanced/external-object-storage
+s3:
+  bucket: gitlab-registry-storage
+  accesskey: BOGUS_ACCESS_KEY
+  secretkey: BOGUS_SECRET_KEY
+  region: us-east-1
+  regionendpoint: "https://minio.example.com:9000"
+  v4auth: true
+  # encrypt: false
+  # secure: true
+  # v4auth: true
+  # chunksize: 5242880
+  # rootdirectory: /
