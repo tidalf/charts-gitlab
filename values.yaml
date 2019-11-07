@@ -66,6 +66,8 @@ global:
     password: {}
       # secret:
       # key:
+    superuser:
+      password: {}
     # host: postgresql.hostedsomewhere.else
     # port: 123
     # username: gitlab

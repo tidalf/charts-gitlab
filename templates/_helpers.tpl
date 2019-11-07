@@ -138,7 +138,7 @@ use the name of the service the upstream chart creates
 {{- end -}}
 
 {{/*
-Return the configmap for initializing the PostgreSQL database. This is used to enable the 
+Return the configmap for initializing the PostgreSQL database. This is used to enable the
 necessary postgres extensions for Gitlab to work
 This overrides the upstream postegresql chart so that we can deterministically
 use the name of the initdb scripts ConfigMap the upstream chart creates
@@ -162,6 +162,13 @@ Alias of gitlab.psql.host
 {{- end -}}
 
 {{/*
+Alias of gitlab.psql.superuser.username
+*/}}
+{{- define "postgresql.postgresqlUsername" -}}
+{{- template "gitlab.psql.superuser.username" . -}}
+{{- end -}}
+
+{{/*
 Return the db database name
 */}}
 {{- define "gitlab.psql.database" -}}
@@ -175,6 +182,15 @@ to "gitlab" default
 */}}
 {{- define "gitlab.psql.username" -}}
 {{- coalesce .Values.global.psql.username "gitlab" -}}
+{{- end -}}
+
+{{/*
+Return the db superuser username
+If the postgresql superuser username is provided, it will use that, otherwise it will fallback
+to "postgres" default
+*/}}
+{{- define "gitlab.psql.superuser.username" -}}
+{{- coalesce .Values.global.psql.superuser.username "postgres" -}}
 {{- end -}}
 
 {{/*
@@ -198,15 +214,15 @@ Defaults to a release-based name and falls back to .Values.global.psql.secretNam
 {{/*
 Return the superuser secret name
 */}}
-{{- define "gitlab.psql.password.superuser_secret" -}}
-{{- default (printf "%s-%s" .Release.Name "postgresql-superuser-password") .Values.global.psql.password.superuser_secret | quote -}}
+{{- define "gitlab.psql.superuser.password.secret" -}}
+{{- default (printf "%s-%s" .Release.Name "postgresql-superuser-password") .Values.global.psql.superuser.password.secret | quote -}}
 {{- end -}}
 
 {{/*
 Alias of gitlab.psql.password.secret to override upstream postgresql chart naming
 */}}
 {{- define "postgresql.secretName" -}}
-{{- template "gitlab.psql.password.secret" . -}}
+{{- template "gitlab.psql.superuser.password.secret" . -}}
 {{- end -}}
 
 {{/*
