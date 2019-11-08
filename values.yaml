@@ -54,8 +54,17 @@ global:
     configureCertmanager: true
     annotations: {}
     enabled: true
-    # tls:
+    tls: {}
     #   enabled: true
+    #   secretName:
+
+  gitlab:
+    ## Enterprise license for this GitLab installation
+    ## Secret created according to doc/installation/secrets.md#initial-enterprise-license
+    ## If allowing shared-secrets generation, this is OPTIONAL.
+    license: {}
+      # secret: RELEASE-gitlab-license
+      # key: license
 
   ## Initial root password for this GitLab installation
   ## Secret created according to doc/installation/secrets.md#initial-root-password
@@ -83,6 +92,9 @@ global:
       # key:
     # host: redis.hostedsomewhere.else
     # port: 6379
+    # sentinels:
+    #   - host:
+    #     port:
 
   ## doc/charts/globals.md#configure-gitaly-settings
   gitaly:
@@ -92,6 +104,9 @@ global:
     internal:
       names: ['default']
     external: []
+    tls:
+      enabled: false
+      # secretName:
 
   ## doc/charts/globals.md#configure-minio-settings
   minio:
@@ -528,6 +543,8 @@ grafana:
       mountPath: /tmp/scripts
       configMap: gitlab-grafana-import-secret
       readOnly: true
+  testFramework:
+    enabled: false
 
 ## Settings for individual sub-charts under GitLab
 ## Note: Many of these settings are configurable via globals

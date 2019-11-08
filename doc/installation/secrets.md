@@ -95,6 +95,21 @@ kubectl create secret generic <name>-gitlab-shell-host-keys --from-file hostKeys
 
 This secret is referenced by the `global.shell.hostKeys.secret` setting.
 
+## Initial Enterprise license
+
+Create a kubernetes secret for storing the Enterprise license for the GitLab instance.
+Replace `<name>` with the name of the release.
+
+```
+kubectl create secret generic <name>-gitlab-license --from-file=license=/tmp/license.gitlab
+```
+
+Then use `--set global.gitlab.license.secret=<name>-gitlab-license` to
+inject the license into your configuration.
+
+You can also use the `global.gitlab.license.key` option to change the default
+`license` key pointing to the license in the license secret.
+
 ### Initial root password
 
 Create a kubernetes secret for storing the initial root password. The password
@@ -113,6 +128,10 @@ Generate a random 64 character alpha-numeric password for Redis. Replace
 ```
 kubectl create secret generic <name>-redis-secret --from-literal=secret=$(head -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 64)
 ```
+
+If deploying with an already existing Redis cluster, please use the password
+for accessing the Redis cluster that has been base64 encoded instead of a
+randomly generated one.
 
 ### GitLab Shell secret
 

@@ -163,11 +163,22 @@ global:
     host: redis.example.com
     # serviceName:
     port: 6379
+    sentinels:
+      - host: sentinel1.example.com
+        port: 26379
+      - host: sentinel2.example.com
+        port: 26379
     password:
       enabled: true
       secret: gitlab-redis
       key: redis-password
 ```
+
+_Note:_ The current Redis Sentinel support only supports Sentinels that have
+been deployed separately from the GitLab chart. As a result, the Redis
+deployment through the GitLab chart should be disabled with `redis.enabled=false`
+and `redis-ha.enabled=false`. The Secret containing the Redis password
+will need to be manually created before deploying the GitLab chart.
 
 ## Configure Grafana integration
 
@@ -208,6 +219,9 @@ global:
     authToken:
       secret: gitaly-secret
       key: token
+    tls:
+      enabled: true
+      secretName: gitlab-gitaly-tls
 ```
 
 ### Gitaly hosts
@@ -289,6 +303,10 @@ NOTE: **Note:** All Gitaly nodes **must** share the same authentication token.
 | `host` *(deprecated)*        | String  |         | The hostname of the Gitaly server to use. This can be omitted in lieu of `serviceName`. If this setting is used, it will override any values of `internal` or `external`. |
 | `port` *(deprecated)*        | Integer | `8075`  | The port on which to connect to the Gitaly server. |
 | `serviceName` *(deprecated)* | String  |         | The name of the `service` which is operating the Gitaly server. If this is present, and `host` is not, the chart will template the hostname of the service (and current `.Release.Name`) in place of the `host` value. This is convenient when using Gitaly as a part of the overall GitLab chart. |
+
+### TLS settings
+
+Configuring Gitaly over TLS is detailed [in the Gitaly chart's documentation](gitlab/gitaly#running-gitaly-over-tls).
 
 ## Configure Minio settings
 
