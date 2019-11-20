@@ -9,6 +9,4 @@ data:
   enable_extensions.sql: |
     \connect {{ template "gitlab.psql.database" .}}
     CREATE EXTENSION pg_trgm;
-  create_user.sh: |
-    psql -U postgres -d template1 -c "CREATE USER gitlab WITH PASSWORD '${POSTGRESQL_PASSWORD}' LOGIN;"
 # Leave this here - This line denotes end of block to the parser.

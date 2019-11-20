@@ -50,6 +50,7 @@ spec:
           image: "{{ coalesce .Values.image.repository (include "image.repository" .) }}:{{ coalesce .Values.image.tag (include "gitlab.versionTag" . ) }}"
           args:
             - /scripts/wait-for-deps
+            - /scripts/create-database-user
             - /scripts/db-migrate
           {{ template "gitlab.imagePullPolicy" . }}
           env:
@@ -112,6 +113,11 @@ spec:
               items:
                 - key: {{ template "gitlab.psql.password.key" . }}
                   path: postgres/psql-password
+          - secret:
+              name: {{ template "gitlab.psql.superuser.password.secret" . }}
+              items:
+                - key: {{ template "gitlab.psql.superuser.password.key" . }}
+                  path: postgres/superuser-password
           - secret:
               name: {{ template "gitlab.migrations.initialRootPassword.secret" . }}
               items:

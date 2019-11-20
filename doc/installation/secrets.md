@@ -37,7 +37,7 @@ documentation.
   - [GitLab Rails secret](#gitlab-rails-secret)
   - [GitLab workhorse secret](#gitlab-workhorse-secret)
   - [GitLab runner secret](#gitlab-runner-secret)
-  - [Postgres password](#postgresql-password)
+  - [PostgreSQL passwords](#postgresql-passwords)
   - [Minio secret](#minio-secret)
   - [Registry HTTP secret](#registry-http-secret)
   - [Grafana password](#grafana-password)
@@ -183,13 +183,15 @@ kubectl create secret generic <name>-minio-secret --from-literal=accesskey=$(hea
 
 This secret is referenced by the `global.minio.credentials.secret` setting.
 
-### Postgresql password
+### Postgresql passwords
+
+There are two secrets required for the PostgreSQL installation. One for the application user, and one for the super user.
 
 Generate a random 64 character alpha-numeric password. Replace `<name>` with
-the name of the release.
+the name of the release. Replace <secret> with `postgresql-password` for the application user, and `superuser-postgresql-password` for the super user.
 
 ```
-kubectl create secret generic <name>-postgresql-password --from-literal=postgresql-password=$(head -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 64)
+kubectl create secret generic <name>-<secret> --from-literal=<secret> -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 64)
 ```
 
 ### Grafana password

@@ -235,6 +235,15 @@ Uses `postgresql-password` to match upstream postgresql chart when not using an
 {{- end -}}
 
 {{/*
+Return the name of the key in a secret that contains the postgres superuser password
+Uses `postgresql-password` to match upstream postgresql chart when not using an
+  external postegresql
+*/}}
+{{- define "gitlab.psql.superuser.password.key" -}}
+{{- default "postgresql-password" .Values.global.psql.superuser.password.key | quote -}}
+{{- end -}}
+
+{{/*
 Return if prepared statements should be used by PostgreSQL.
 Defaults to false
 */}}
