@@ -25,7 +25,7 @@ _**NOTE**: The values below should be replaced_
 
 <!--
 updates to following example must also be made at
-https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/administration/gitaly/index.md#gitaly-server-configuration
+https://gitlab.com/gitlab-org/gitlab-foss/blob/master/doc/administration/gitaly/index.md#gitaly-server-configuration
 -->
 
 ```Ruby
@@ -59,7 +59,7 @@ gitaly['storage'] = [
 ]
 
 # To use TLS for Gitaly you need to add
-gitaly['tls_listen_addr'] = "0.0.0.0:9999"
+gitaly['tls_listen_addr'] = "0.0.0.0:8076"
 gitaly['certificate_path'] = "path/to/cert.pem"
 gitaly['key_path'] = "path/to/key.pem"
 ```

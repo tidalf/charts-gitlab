@@ -22,6 +22,22 @@ of the GitLab chart, then you are encountering a bug. Please open an issue on ou
 [issue #630](https://gitlab.com/gitlab-org/charts/gitlab/issues/630) where we recovered our
 CI server from this problem.
 
+## Error: this command needs 2 arguments: release name, chart path
+
+An error like this could occur when you run `helm upgrade`
+and there are some spaces in the parameters. In the following
+example, `Test Username` is the culprit:
+
+```sh
+helm upgrade gitlab gitlab/gitlab --timeout 600 --set global.email.display_name=Test Username ...
+```
+
+To fix it, pass the parameters in single quotes:
+
+```sh
+helm upgrade gitlab gitlab/gitlab --timeout 600 --set global.email.display_name='Test Username' ...
+```
+
 ## Application containers constantly initializing
 
 If you experience Sidekiq, Unicorn, or other Rails based containers in a constant
@@ -86,7 +102,7 @@ This can happen when the runner registration token has been changed in GitLab. (
 
 ## Too many redirects
 
-This can happen when you have TLS termination before the nginx ingress, and the tls-secrets are specified in the configuration.
+This can happen when you have TLS termination before the NGINX Ingress, and the tls-secrets are specified in the configuration.
 
 1. Update your values to set `global.ingress.annotations."nginx.ingress.kubernetes.io/ssl-redirect": "false"`
 
@@ -100,7 +116,7 @@ This can happen when you have TLS termination before the nginx ingress, and the 
          "nginx.ingress.kubernetes.io/ssl-redirect": "false"
    ```
 
-   Via the helm CLI:
+   Via the Helm CLI:
 
    ```sh
    helm ... --set-string global.ingress.annotations."nginx.ingress.kubernetes.io/ssl-redirect"=false

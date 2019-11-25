@@ -31,35 +31,48 @@ The `sidekiq` chart is configured in three parts: chart-wide [external services]
 The table below contains all the possible charts configurations that can be supplied
 to the `helm install` command using the `--set` flags:
 
-| Parameter                   | Default           | Description                              |
-| --------------------------- | ----------------- | ---------------------------------------- |
-| `annotations`               |                   | Pod annotations                          |
-| `concurrency`               | `10`              | Sidekiq default concurrency              |
-| `enabled`                   | `true`            | Sidekiq enabled flag                     |
-| `extraContainers`           |                   | List of extra containers to include      |
-| `extraInitContainers`       |                   | List of extra init containers to include |
-| `extraVolumeMounts`         |                   | List of extra volumes mountes to do      |
-| `extraVolumes`              |                   | List of extra volumes to create          |
-| `gitaly.serviceName`        | `gitaly`          | gitaly service name                      |
-| `hpa.targetAverageValue`    | `400m`            | Set the autoscaling target value         |
-| `image.pullPolicy`          | `Always`          | Sidekiq image pull policy                |
-| `image.pullSecrets`         |                   | Secrets for the image repository         |
-| `image.repository`          | `registry.gitlab.com/gitlab-org/build/cng/gitlab-sidekiq-ee` | Sidekiq image repository |
-| `image.tag`                 |                   | Sidekiq image tag                        |
-| `init.image`                | `busybox`         | initContainer image                      |
-| `init.tag`                  | `latest`          | initContainer image tag                  |
-| `metrics.enabled`           | `true`            | Toggle Prometheus metrics exporter       |
-| `psql.password.key`         | `psql-password`   | key to psql password in psql secret      |
-| `psql.password.secret`      | `gitlab-postgres` | psql password secret                     |
-| `redis.serviceName`         | `redis`           | Redis service name                       |
-| `replicas`                  | `1`               | Sidekiq replicas                         |
-| `resources.requests.cpu`    | `100m`            | Sidekiq minimum needed cpu               |
-| `resources.requests.memory` | `600M`            | Sidekiq minimum needed memory            |
-| `timeout`                   | `5`               | Sidekiq job timeout                      |
-| `tolerations`               | `[]`              | Toleration labels for pod assignment     |
-| `memoryKiller.maxRss`       | `2000000`         | Maximum RSS before delayed shutdown triggered expressed in kilobytes |
-| `memoryKiller.graceTime`    | `900`             | Time to wait before a triggered shutdown expressed in seconds|
-| `memoryKiller.shutdownWait` | `30`              | Amount of time after triggered shutdown for existing jobs to finish expressed in seconds |
+| Parameter                            | Default           | Description                              |
+| ------------------------------------ | ----------------- | ---------------------------------------- |
+| `annotations`                        |                   | Pod annotations                          |
+| `concurrency`                        | `10`              | Sidekiq default concurrency              |
+| `enabled`                            | `true`            | Sidekiq enabled flag                     |
+| `extraContainers`                    |                   | List of extra containers to include      |
+| `extraInitContainers`                |                   | List of extra init containers to include |
+| `extraVolumeMounts`                  |                   | List of extra volumes mountes to do      |
+| `extraVolumes`                       |                   | List of extra volumes to create          |
+| `gitaly.serviceName`                 | `gitaly`          | Gitaly service name                      |
+| `hpa.targetAverageValue`             | `400m`            | Set the autoscaling target value         |
+| `image.pullPolicy`                   | `Always`          | Sidekiq image pull policy                |
+| `image.pullSecrets`                  |                   | Secrets for the image repository         |
+| `image.repository`                   | `registry.gitlab.com/gitlab-org/build/cng/gitlab-sidekiq-ee` | Sidekiq image repository |
+| `image.tag`                          |                   | Sidekiq image tag                        |
+| `init.image`                         | `busybox`         | initContainer image                      |
+| `init.tag`                           | `latest`          | initContainer image tag                  |
+| `metrics.enabled`                    | `true`            | Toggle Prometheus metrics exporter       |
+| `psql.password.key`                  | `psql-password`   | key to psql password in psql secret      |
+| `psql.password.secret`               | `gitlab-postgres` | psql password secret                     |
+| `redis.serviceName`                  | `redis`           | Redis service name                       |
+| `replicas`                           | `1`               | Sidekiq replicas                         |
+| `resources.requests.cpu`             | `100m`            | Sidekiq minimum needed cpu               |
+| `resources.requests.memory`          | `600M`            | Sidekiq minimum needed memory            |
+| `timeout`                            | `5`               | Sidekiq job timeout                      |
+| `tolerations`                        | `[]`              | Toleration labels for pod assignment     |
+| `memoryKiller.daemonMode`            | `false`           | If `true` enables daemon memory killer mode |
+| `memoryKiller.maxRss`                | `2000000`         | Maximum RSS before delayed shutdown triggered expressed in kilobytes |
+| `memoryKiller.graceTime`             | `900`             | Time to wait before a triggered shutdown expressed in seconds|
+| `memoryKiller.shutdownWait`          | `30`              | Amount of time after triggered shutdown for existing jobs to finish expressed in seconds |
+| `memoryKiller.hardLimitRss`          |                   | Maximum RSS before imediate shutdown triggered expressed in kilobyte in daemon mode |
+| `memoryKiller.checkInterval`         | `3`               | Amount of time between memory checks in daemon mode |
+| `livenessProbe.initialDelaySeconds`  | 20                | Delay before liveness probe is initiated                                                              |
+| `livenessProbe.periodSeconds`        | 60                | How often to perform the liveness probe                                                               |
+| `livenessProbe.timeoutSeconds`       | 30                | When the liveness probe times out                                                                     |
+| `livenessProbe.successThreshold`     | 1                 | Minimum consecutive successes for the liveness probe to be considered successful after having failed  |
+| `livenessProbe.failureThreshold`     | 3                 | Minimum consecutive failures for the liveness probe to be considered failed after having succeeded    |
+| `readinessProbe.initialDelaySeconds` | 0                 | Delay before readiness probe is initiated                                                             |
+| `readinessProbe.periodSeconds`       | 10                | How often to perform the readiness probe                                                              |
+| `readinessProbe.timeoutSeconds`      | 2                 | When the readiness probe times out                                                                    |
+| `readinessProbe.successThreshold`    | 1                 | Minimum consecutive successes for the readiness probe to be considered successful after having failed |
+| `readinessProbe.failureThreshold`    | 3                 | Minimum consecutive failures for the readiness probe to be considered failed after having succeeded   |
 
 ## Chart configuration examples
 
@@ -101,7 +114,7 @@ tolerations:
 
 ### annotations
 
-`annotations` allows you to add annotations to the sidekiq pods.
+`annotations` allows you to add annotations to the Sidekiq pods.
 
 Below is an example use of `annotations`:
 
@@ -114,7 +127,7 @@ annotations:
 
 By default, the Helm charts use the Enterprise Edition of GitLab. If desired, you
 can use the Community Edition instead. Learn more about the
-[differences between the two](https://about.gitlab.com/installation/ce-or-ee/).
+[differences between the two](https://about.gitlab.com/install/ce-or-ee/).
 
 In order to use the Community Edition, set `image.repository` to
 `registry.gitlab.com/gitlab-org/build/cng/gitlab-sidekiq-ce`.
@@ -131,18 +144,29 @@ that is shared across all Sidekiq pods.
 redis:
   host: rank-racoon-redis
   port: 6379
+  sentinels:
+    - host: sentinel1.example.com
+      port: 26379
   password:
     secret: gitlab-redis
     key: redis-password
 ```
 
-| Name              | Type    | Default | Description |
-|:----------------- |:-------:|:------- |:----------- |
-| `host`            | String  |         | The hostname of the Redis server with the database to use. This can be omitted in lieu of `serviceName`. |
-| `password.key`    | String  |         | The `password.key` attribute for PostgreSQL defines the name of the key in the secret (below) that contains the password. |
-| `password.secret` | String  |         | The `password.secret` attribute for PostgreSQL defines the name of the Kubernetes `Secret` to pull from. |
-| `port`            | Integer | `6379`  | The port on which to connect to the Redis server. |
-| `serviceName`     | String  | `redis` | The name of the `service` which is operating the Redis database. If this is present, and `host` is not, the chart will template the hostname of the service (and current `.Release.Name`) in place of the `host` value. This is convenient when using Redis as a part of the overall GitLab chart. |
+| Name               | Type    | Default | Description |
+|:------------------ |:-------:|:------- |:----------- |
+| `host`             | String  |         | The hostname of the Redis server with the database to use. This can be omitted in lieu of `serviceName`. If using Redis Sentinels, the `host` attribute needs to be set to the cluster name as specified in the `sentinel.conf`. |
+| `password.key`     | String  |         | The `password.key` attribute for Redis defines the name of the key in the secret (below) that contains the password. |
+| `password.secret`  | String  |         | The `password.secret` attribute for Redis defines the name of the Kubernetes `Secret` to pull from. |
+| `port`             | Integer | `6379`  | The port on which to connect to the Redis server. |
+| `serviceName`      | String  | `redis` | The name of the `service` which is operating the Redis database. If this is present, and `host` is not, the chart will template the hostname of the service (and current `.Release.Name`) in place of the `host` value. This is convenient when using Redis as a part of the overall GitLab chart. |
+| `sentinels.[].host`| String  |         | The hostname of Redis Sentinel server for a Redis HA setup. |
+| `sentinels.[].port`| Integer | `26379` | The port on which to connect to the Redis Sentinel server. |
+
+_Note:_ The current Redis Sentinel support only supports Sentinels that have
+been deployed separately from the GitLab chart. As a result, the Redis
+deployment through the GitLab chart should be disabled with `redis.enabled=false`
+and `redis-ha.enabled=false`. The Secret containing the Redis password
+will need to be manually created before deploying the GitLab chart.
 
 ### PostgreSQL
 
@@ -210,14 +234,14 @@ on a per-pod basis.
 
 | Name          | Type    | Default | Description |
 |:------------- |:-------:|:------- |:----------- |
-| `concurrency` | Integer | `25`    | The number of tasks to process simultaneously. |
-| `replicas`    | Integer | `1`     | The number of `replicas` to use by default per pod definition. |
-| `timeout`     | Integer | `4`     | The sidekiq shutdown timeout. The number of seconds after sidekiq gets the TERM signal before it forcefully shuts down its processes. |
-| `memoryKiller.maxRss`       | Integer | `2000000`         | Maximum RSS before delayed shutdown triggered expressed in kilobytes |
-| `memoryKiller.graceTime`    | Integer | `900`             | Time to wait before a triggered shutdown expressed in seconds|
-| `memoryKiller.shutdownWait` | Integer | `30`              | Amount of time after triggered shutdown for existing jobs to finish expressed in seconds |
+| `concurrency`               | Integer | `25`      | The number of tasks to process simultaneously. |
+| `replicas`                  | Integer | `1`       | The number of `replicas` to use by default per pod definition. |
+| `timeout`                   | Integer | `4`       | The Sidekiq shutdown timeout. The number of seconds after Sidekiq gets the TERM signal before it forcefully shuts down its processes. |
+| `memoryKiller.maxRss`       | Integer | `2000000` | Maximum RSS before delayed shutdown triggered expressed in kilobytes |
+| `memoryKiller.graceTime`    | Integer | `900`     | Time to wait before a triggered shutdown expressed in seconds|
+| `memoryKiller.shutdownWait` | Integer | `30`      | Amount of time after triggered shutdown for existing jobs to finish expressed in seconds |
 
-NOTE: **Note**: [Detailed documentation of the sidekiq memory killer is
+NOTE: **Note**: [Detailed documentation of the Sidekiq memory killer is
   available](https://docs.gitlab.com/ee/administration/operations/sidekiq_memory_killer.html#sidekiq-memorykiller)
   in the Omnibus documentation.
 
@@ -236,8 +260,9 @@ NOTE: **Note**: The settings default to including a single pod that is set up to
 | `concurrency`  | Integer |         | The number of tasks to process simultaneously. If not provided, it will be pulled from the chart-wide default. |
 | `name`         | String  |         | Used to name the `Deployment` and `ConfigMap` for this pod. It should be kept short, and should not be duplicated between any two entries. |
 | `queues`       |         |         | [See below](#queues). |
+| `negateQueues` |         |         | [See below](#negateQueues). |
 | `replicas`     | Integer |         | The number of `replicas` to create for this `Deployment`. If not provided, it will be pulled from the chart-wide default. |
-| `timeout`      | Integer |         | The sidekiq shutdown timeout. The number of seconds after sidekiq gets the TERM signal before it forcefully shuts down its processes. If not provided, it will be pulled from the chart-wide default. |
+| `timeout`      | Integer |         | The Sidekiq shutdown timeout. The number of seconds after Sidekiq gets the TERM signal before it forcefully shuts down its processes. If not provided, it will be pulled from the chart-wide default. |
 | `resources`    |         |         | Each pod can present it's own `resources` requirements, which will be added to the `Deployment` created for it, if present. These match the Kubernetes documentation. |
 | `nodeSelector` |         |         | Each pod can be configured with a `nodeSelector` attribute, which will be added to the `Deployment` created for it, if present. These definitions match the Kubernetes documentation.|
 
@@ -245,15 +270,25 @@ NOTE: **Note**: The settings default to including a single pod that is set up to
 
 The `queues` value will be directly templated into the Sidekiq configuration file.
 As such, you may follow the documentation from Sidekiq for the value of `:queues:`.
-If this is not provided, the [upstream defaults](https://gitlab.com/gitlab-org/gitlab-ee/blob/master/config/sidekiq_queues.yml)
+If this is not provided, the [upstream defaults](https://gitlab.com/gitlab-org/gitlab/blob/master/config/sidekiq_queues.yml)
 will be used, resulting in the handling of *all* queues.
 
 In summary, provide a list of queue names to process. Each item in the list may be
 a queue name (`merge`) or an array of queue names with priorities (`[merge, 5]`).
 
 Any queue to which jobs are added but are not represented as a part of at least one
-pod item *will not be processed*. See [`config/sidekiq_queues.yml`](https://gitlab.com/gitlab-org/gitlab-ee/blob/master/config/sidekiq_queues.yml)
+pod item *will not be processed*. See [`config/sidekiq_queues.yml`](https://gitlab.com/gitlab-org/gitlab/blob/master/config/sidekiq_queues.yml)
 in the GitLab source for a complete list of all queues.
+
+### negateQueues
+
+`negateQueues` is a list of queue names (strings) which will be filtered from the
+default list of Sidekiq queues. Unlike [queues](#queues) above which will replace
+the default list, `negateQueues` will consume the defaults, remove those named
+here, and populate the rest for consumption.
+
+NOTE: **Note**: `negateQueues` _should not_ be provided alongside `queues`, as it will have no
+affect.
 
 ### Example `pod` entry
 
@@ -276,6 +311,8 @@ pods:
 
 ## Production usage
 
-By default, all of sidekiq queues run in an all-in-one container which is not suitable
-for production use cases. Check the [example config](./example-queues.yaml) for a more production ready sidekiq
-deployment. You can move queues around pods as part of your tuning.
+By default, all of Sidekiq queues run in an all-in-one container which is not
+suitable for production use cases. Check the [example
+config](https://gitlab.com/gitlab-org/charts/gitlab/blob/master/doc/charts/gitlab/sidekiq/example-queues.yaml)
+for a more production ready Sidekiq deployment. You can move queues around pods
+as part of your tuning.

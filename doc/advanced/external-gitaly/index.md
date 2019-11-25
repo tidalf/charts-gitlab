@@ -20,9 +20,7 @@ You need to set the following parameters:
 
 Items below can be further customized if you are not using the defaults:
 
-- `global.gitaly.port`: The port the database is available on, defaults to `8075`
-
-For example, pass these values via helm's `--set` flag while deploying:
+- `global.gitaly.port`: The port the service is available on, defaults to `8075`
 
 ```
 helm install .  \
@@ -30,9 +28,56 @@ helm install .  \
   --set global.gitaly.host=gitaly.example \
   --set global.gitaly.authToken.secret=gitaly-secret \
   --set global.gitaly.authToken.key=token
-  --set gitlab.gitaly.shell.authToken.secret=gitlab-shell-secret \
-  --set gitlab.gitaly.shell.authToken.key=secret \
 ```
+
+## Multiple external Gitaly
+
+If your implementation uses multiple Gitaly nodes external to these charts,
+you can define multiple hosts as well. The syntax is slightly different, as
+to allow the complexity required.
+
+An [example values file][multiple-external] is provided, which shows the
+appropriate set of configuration. The content of this values file is not
+interpreted correctly via `--set` arguments, so should be passed to Helm
+with the `-f / --values` flag.
 
 [gitaly-secret]: ../../installation/secrets.md#gitaly-secret
 [gitlab-shell-secret]: ../../installation/secrets.md#gitlab-shell-secret
+[multiple-external]: https://gitlab.com/gitlab-org/charts/gitlab/blob/master/examples/gitaly/values-multiple-external.yaml
+
+### Connecting to external Gitaly over TLS
+
+If your external [Gitaly server listens over TLS port](https://docs.gitlab.com/ee/administration/gitaly/#tls-support),
+you can make your GitLab instance communicate with it over TLS. To do this, you
+have to
+
+1. Create a Kubernetes secret containing the certificate of the Gitaly
+   server
+
+   ```
+   kubectl create secret generic gitlab-gitaly-tls-certificate --from-file=gitaly-tls.crt=<path to certificate>
+   ```
+
+1. Add the certificate of external Gitaly server to the list of
+   [custom Certificate Authorities](https://docs.gitlab.com/charts/charts/globals#custom-certificate-authorities)
+   In the values file, specify the following
+
+   ```yml
+   global:
+     certificates:
+       customCAs:
+         - secret: gitlab-gitaly-tls-certificate
+   ```
+
+   or pass it to the `helm upgrade` command using `--set`
+
+   ```
+   --set global.certificates.customCAs[0].secret=gitlab-gitaly-tls-certificate
+   ```
+
+1. Enable Gitaly TLS by setting `global.gitaly.tls.enabled=true`
+
+NOTE: **Note**: You can choose any valid secret name and key for this, but make
+sure the key is unique across all the secrets specified in `customCAs` to avoid
+collision since all keys within the secrets will be mounted. You **do not**
+need to provide the key for the certificate, as this is the _client side_.

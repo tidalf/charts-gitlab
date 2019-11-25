@@ -6,7 +6,7 @@ require 'cgi'
 
 class VersionFetcher
   def initialize(version, repo)
-    @version = Version.new(version)
+    @version = Version.new(version) if version
     @repo = repo
     @api_token = ENV['FETCH_DEV_ARTIFACTS_PAT']
     @api_url = if @repo.start_with?('gitlab/')
@@ -40,8 +40,8 @@ class VersionFetcher
     Version.new(new_version)
   end
 
-  # GitLab Monitor Version
-  def gitlab_monitor
+  # GitLab Exporter Version
+  def gitlab_exporter
     # Don't edit the appVersion, it get's set manually as monitor isn't released by release-tools
     nil
   end

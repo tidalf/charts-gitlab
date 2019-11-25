@@ -40,6 +40,9 @@ from the parent chart, these values will be:
 ```yaml
 registry:
   enabled:
+  maintenance:
+    readOnly:
+      enabled: false
   image:
     tag: '2.7.1'
     pullPolicy: IfoNtPresent
@@ -58,7 +61,11 @@ registry:
   deployment:
     terminationGracePeriodSeconds: 30
   draintimeout: '0'
-  replicas: 1
+  hpa:
+    minReplicas: 2
+    maxReplicas: 10
+    cpu:
+      targetAverageUtilization: 75
   storage:
     secret:
     key: storage
@@ -92,30 +99,35 @@ If you chose to deploy this chart as a standalone, remove the `registry` at the 
 
 ## Installation command line options
 
-| Parameter            | Default                    | Description                         |
-| -------------------- | -------------------------- | ----------------------------------- |
-| `annotations`        |                            | Pod annotations                     |
-| `authAutoRedirect`   | `true`                     | Auth auto-redirect (must be true for Windows clients to work) |
-| `authEndpoint`       | `global.hosts.gitlab.name` | Auth endpoint (only host and port)  |
-| `certificate.secret` | `gitlab-registry`          | JWT certificate                     |
-| `compatiblity`       |                            | Configuration of compatility settings |
-| `debug`              |                            | Debug port and prometheus metrics   |
-| `deployment.terminationGracePeriodSeconds` | `30` | Optional duration in seconds the pod needs to terminate gracefully. |
-| `draintimeout`       | `'0'`                      | Amount of time to wait for HTTP connections to drain after receiving a SIGTERM signal (e.g. `'10s'`) |
-| `enabled`            | `true`                     | Enable registry flag                |
-| `httpSecret`         |                            | Https secret                        |
-| `image.pullPolicy`   |                            | Pull policy for the registry image  |
-| `image.pullSecrets`  |                            | Secrets to use for image repository |
-| `image.repository`   | `registry`                 | Registry image                      |
-| `image.tag`          | `2.7.1`                    | Version of the image to use         |
-| `init.image`         | `busybox`                  | initContainer image                 |
-| `init.tag`           | `latest`                   | initContainer image tag             |
-| `log`                | `{level: warn, fields: {service: registry}}` | Configure the logging options |
-| `minio.bucket`       | `global.registry.bucket`   | Legacy registry bucket name         |
-| `replicas`           | `1`                        | Number of replicas                  |
-| `tokenService`       | `container_registry`       | JWT token service                   |
-| `tokenIssuer`        | `gitlab-issuer`            | JWT token issuer                    |
-| `tolerations`        | `[]`                       | Toleration labels for pod assignment|
+| Parameter                                  | Default                                      | Description                                                                                          |
+|--------------------------------------------|----------------------------------------------|------------------------------------------------------------------------------------------------------|
+| `annotations`                              |                                              | Pod annotations                                                                                      |
+| `authAutoRedirect`                         | `true`                                       | Auth auto-redirect (must be true for Windows clients to work)                                        |
+| `authEndpoint`                             | `global.hosts.gitlab.name`                   | Auth endpoint (only host and port)                                                                   |
+| `certificate.secret`                       | `gitlab-registry`                            | JWT certificate                                                                                      |
+| `compatiblity`                             |                                              | Configuration of compatibility settings                                                              |
+| `debug`                                    |                                              | Debug port and Prometheus metrics                                                                    |
+| `deployment.terminationGracePeriodSeconds` | `30`                                         | Optional duration in seconds the pod needs to terminate gracefully.                                  |
+| `draintimeout`                             | `'0'`                                        | Amount of time to wait for HTTP connections to drain after receiving a SIGTERM signal (e.g. `'10s'`) |
+| `relativeurls`                             | `false`                                      | Enable the registry to return relative URLs in Location headers. |
+| `enabled`                                  | `true`                                       | Enable registry flag                                                                                 |
+| `hpa.cpu.targetAverageUtilization`         | `75`                                         | Target value of the average of the resource metric across all relevant pods which governs the HPA    |
+| `hpa.customMetrics`                        | `[]`                                         | autoscaling/v2beta1 Metrics contains the specifications for which to use to calculate the desired replica count (overrides the default use of Average CPU Utilization configured in `targetAverageUtilization`) |
+| `hpa.minReplicas`                          | `2`                                          | Minimum number of replicas                                                                           |
+| `hpa.maxReplicas`                          | `10`                                         | Maximum number of replicas                                                                           |
+| `httpSecret`                               |                                              | Https secret                                                                                         |
+| `image.pullPolicy`                         |                                              | Pull policy for the registry image                                                                   |
+| `image.pullSecrets`                        |                                              | Secrets to use for image repository                                                                  |
+| `image.repository`                         | `registry`                                   | Registry image                                                                                       |
+| `image.tag`                                | `2.7.1`                                      | Version of the image to use                                                                          |
+| `init.image`                               | `busybox`                                    | initContainer image                                                                                  |
+| `init.tag`                                 | `latest`                                     | initContainer image tag                                                                              |
+| `log`                                      | `{level: warn, fields: {service: registry}}` | Configure the logging options                                                                        |
+| `minio.bucket`                             | `global.registry.bucket`                     | Legacy registry bucket name                                                                          |
+| `maintenance.readOnly.enabled`             | `false`                                      | Enable registry's read-only mode                                                                     |
+| `tokenService`                             | `container_registry`                         | JWT token service                                                                                    |
+| `tokenIssuer`                              | `gitlab-issuer`                              | JWT token issuer                                                                                     |
+| `tolerations`                              | `[]`                                         | Toleration labels for pod assignment                                                                 |
 
 ## Chart configuration examples
 
@@ -204,34 +216,34 @@ By default, the Service is configured as:
 
 ## Configuring the `ingress`
 
-This section controls the registry ingress.
+This section controls the registry Ingress.
 
 | Name              | Type    | Default | Description |
 |:----------------- |:-------:|:------- |:----------- |
-| `annotations`     | String  |         | This field is an exact match to the standard `annotations` for [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress). |
-| `enabled`         | Boolean | `false` | Setting that controls whether to create ingress objects for services that support them. When `false` the `global.ingress.enabled` setting is used. |
-| `tls.enabled`     | Boolean | `true`  | When set to `false`, you disable TLS for the Registry subchart. This is mainly useful for cases in which you cannot use TLS termination at ingress-level, like when you have a TLS-terminating proxy before the ingress controller. |
+| `annotations`     | String  |         | This field is an exact match to the standard `annotations` for [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/). |
+| `enabled`         | Boolean | `false` | Setting that controls whether to create Ingress objects for services that support them. When `false` the `global.ingress.enabled` setting is used. |
+| `tls.enabled`     | Boolean | `true`  | When set to `false`, you disable TLS for the Registry subchart. This is mainly useful for cases in which you cannot use TLS termination at `ingress-level`, like when you have a TLS-terminating proxy before the Ingress Controller. |
 | `tls.serviceName` | String  | `redis` | The name of the Kubernetes TLS Secret that contains a valid certificate and key for the registry url. When not set, the `global.ingress.tls.secretName` is used instead. Defaults to not being set. |
 
 ## Configuring the `networkpolicy`
 
 This section controls the registry
 [NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/).
-This configuration is optional and is used to limit egress and ingress of the registry to specific endpoints.
-and ingress to specific endpoints.
+This configuration is optional and is used to limit egress and Ingress of the registry to specific endpoints.
+and Ingress to specific endpoints.
 
 | Name              | Type    | Default | Description |
 |:----------------- |:-------:|:------- |:----------- |
 | `enabled`         | Boolean | `false` | This setting enables the networkpolicy for registry |
-| `ingress.enabled` | Boolean | `false` | When set to `true`, the `Ingress` network policy will be activated. This will block all ingress connections unless rules are specified. |
-| `ingress.rules`   | Array   | `[]`    | Rules for the ingress policy, for details see <https://kubernetes.io/docs/concepts/services-networking/network-policies/#the-networkpolicy-resource> and the example below |
+| `ingress.enabled` | Boolean | `false` | When set to `true`, the `Ingress` network policy will be activated. This will block all Ingress connections unless rules are specified. |
+| `ingress.rules`   | Array   | `[]`    | Rules for the Ingress policy, for details see <https://kubernetes.io/docs/concepts/services-networking/network-policies/#the-networkpolicy-resource> and the example below |
 | `egress.enabled`  | Boolean | `false` | When set to `true`, the `Egress` network policy will be activated. This will block all egress connections unless rules are specified. |
 | `egress.rules`    | Array   | `[]`    | Rules for the egress policy, these for details see <https://kubernetes.io/docs/concepts/services-networking/network-policies/#the-networkpolicy-resource> and the example below |
 
 ### Example policy for preventing connections to all internal endpoints
 
 The Registry service normally requires egress connections to object storage,
-ingress connections from docker clients, and kube-dns for DNS lookups. This
+Ingress connections from docker clients, and kube-dns for DNS lookups. This
 adds the following network restrictions to the Registry service:
 
 - All egress requests to the local network on `10.0.0.0/8` port 53 are allowed (for kubeDNS)
@@ -319,7 +331,7 @@ certificate:
   key: registry-auth.crt
 ```
 
-### compatiblity
+### compatibility
 
 The `compatibility` field is a map relating directly to the configuration file's
 [compatiblity](https://github.com/docker/distribution/blob/master/docs/configuration.md#compatibility)
@@ -357,10 +369,12 @@ The image validation is turned off by default.
 
 To enable image validation you need to explicitly set `registry.validation.disabled: false`.
 
-### replicas
+### hpa
 
-The `replicas` field is an integer, controlling the number of [registry](https://hub.docker.com/_/registry/)
-instances to create as a part of the set. This defaults to `1`.
+The `hpa` field is an object, controlling the number of [registry](https://hub.docker.com/_/registry/)
+instances to create as a part of the set. This defaults to a `minReplicas` value
+of `2`, a `maxReplicas` value of 10, and configures the
+`cpu.targetAverageUtilization` to 75%.
 
 ### storage
 
@@ -375,8 +389,8 @@ The `storage` field is a reference to a Kubernetes Secret and associated key. Th
 of this secret is taken directly from [Registry Configuration: `storage`](https://docs.docker.com/registry/configuration/#storage).
 Please refer to that documentation for more details.
 
-Examples for [AWS s3](https://docs.docker.com/registry/storage-drivers/s3) and
-[Google GCS](https://docs.docker.com/registry/storage-drivers/gcs) drivers can be
+Examples for [AWS s3](https://docs.docker.com/registry/storage-drivers/s3/) and
+[Google GCS](https://docs.docker.com/registry/storage-drivers/gcs/) drivers can be
 found in [examples/objectstorage](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/objectstorage):
 
 - [registry.s3.yaml](https://gitlab.com/gitlab-org/charts/gitlab/tree/master/examples/objectstorage/registry.s3.yaml)
@@ -406,20 +420,21 @@ kubectl create secret generic registry-storage \
 If you chose to use the `filesystem` driver:
 
 - You will need to provide persistent volumes for this data.
-- [replicas](#replicas) should be set to `1`
+- [hpa.minReplicas](#hpa) should be set to `1`
+- [hpa.maxReplicas](#hpa) should be set to `1`
 
 For the sake of resiliency and simplicity, it is recommended to make use of an
 external service, such as `s3`, `gcs`, `azure` or other compatible Object Storage.
 
 NOTE: **Note:** The chart will populate `delete.enabled: true` into this configuration
   by default if not specified by the user. This keeps expected behavior in line with
-  the default use of Minio, as well as the Omnibus GitLab. Any user provided value
+  the default use of MinIO, as well as the Omnibus GitLab. Any user provided value
   will supersede this default.
 
 ### debug
 
 The debug port is enabled by default and is used for the liveness/readiness
-probe. Additionally, prometheus metrics can be enabled.
+probe. Additionally, Prometheus metrics can be enabled.
 
 ```yaml
 debug:
@@ -442,4 +457,34 @@ health:
     enabled: false
     interval: 10s
     threshold: 3
+```
+
+## Garbage Collection
+
+The Docker Registry will build up extraneous data over time which can be freed using
+[garbage collection](https://docs.docker.com/registry/garbage-collection/).
+As of [now](https://gitlab.com/gitlab-org/charts/gitlab/issues/1586) there is no
+fully automated or scheduled way to run the garbage collection with this Chart.
+
+### Manual Garbage Collection
+
+Manual garbage collection requires the registry to be in read-only mode first. Let's assume that you've already
+installed the GitLab Chart using Helm, named it `mygitlab` and installed it in the namespace `gitlabns`.
+Replace these values in the commands below according to your actual configuration.
+
+```bash
+# Because of https://github.com/helm/helm/issues/2948 we can't rely on --reuse-values, so let's get our current config.
+helm get config mygitlab > mygitlab.yml
+# Upgrade Helm installation and configure the registry to be read-only.
+# The --wait parameter makes Helm wait until all ressources are in ready state, so we are safe to continue.
+helm upgrade mygitlab gitlab/gitlab -f mygitlab.yml --set registry.readOnly.enabled=true --wait
+# Our registry is in r/o mode now, so let's get the name of one of the registry Pods.
+# Note down the Pod name and replace the '<registry-pod>' placeholder below with that value.
+# Replace the single quotes to double quotes (' => ") if you are using this with Windows' cmd.exe.
+kubectl get pods -n gitlabns -l app=registry -o jsonpath='{.items[0].metadata.name}'
+# Run the actual garbage collection. Check the registry's manual if you really want the '-m' parameter.
+kubectl exec -n gitlabns <registry-pod> -- /bin/registry garbage-collect -m /etc/docker/registry/config.yml
+# Reset registry back to original state.
+helm upgrade mygitlab gitlab/gitlab -f mygitlab.yml --wait
+# All done :)
 ```

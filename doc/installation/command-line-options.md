@@ -9,6 +9,8 @@ to the `helm install` command using the `--set` flags.
 |------------------------------------------------|---------------------------------------------------------------------------------------------|-----------------------------------------------|
 | `gitlab.migrations.initialRootPassword.key`    | Key pointing to the root account password in the migrations secret                          | `password`                                    |
 | `gitlab.migrations.initialRootPassword.secret` | Global name of the secret containing the root account password                              | `{Release.Name}-gitlab-initial-root-password` |
+| `global.gitlab.license.key`                    | Key pointing to the Enterprise license in the license secret                                | `license`                                     |
+| `global.gitlab.license.secret`                 | Global name of the secret containing the Enterprise license                                 | _none_                                        |
 | `global.application.create`                    | Create an [Application resource](https://github.com/kubernetes-sigs/application) for GitLab | `false`                                       |
 | `global.edition`                               | The edition of GitLab to install. Enterprise Edition (ee) or Community Edition (ce)         | `ee`                                          |
 | `global.hosts.domain`                          | Domain name that will be used for all publicly exposed services                             | Required                                      |
@@ -42,6 +44,10 @@ to the `helm install` command using the `--set` flags.
 | `global.email.display_name`       | Name that appears as the sender for emails from GitLab                                  | `GitLab`              |
 | `global.email.from`               | Email address that appears as the sender for emails from GitLab                         | `gitlab@example.com`  |
 | `global.email.reply_to`           | Reply-to email listed in emails from GitLab                                             | `noreply@example.com` |
+| `global.email.smime.certName`     | Secret object key value for locating the S/MIME certificate file                        | tls.crt               |
+| `global.email.smime.enabled`      | Add the S/MIME signatures to outgoing email                                             | false                 |
+| `global.email.smime.keyName`      | Secret object key value for locating the S/MIME key file                                | tls.key               |
+| `global.email.smime.secretName`   | Kubernetes Secret object to find the X.509 certificate ([S/MIME Cert][] for creation )  | ""                    |
 | `global.email.subject_suffix`     | Suffix on the subject of all outgoing email from GitLab                                 | ""                    |
 | `global.smtp.address`             | Hostname or IP of the remote mail server                                                | `smtp.mailgun.org`    |
 | `global.smtp.authentication`      | Type of SMTP authentication ("plain", "login", "cram_md5", or "" for no authentication) | `plain`               |
@@ -54,6 +60,8 @@ to the `helm install` command using the `--set` flags.
 | `global.smtp.starttls_auto`       | Use STARTTLS if enabled on the mail server                                              | false                 |
 | `global.smtp.tls`                 | Enables SMTP/TLS (SMTPS: SMTP over direct TLS connection)                               | _none_                |
 | `global.smtp.user_name`           | Username for SMTP authentication https                                                  | ""                    |
+
+[S/MIME Cert]: secrets.md#smime-certificate
 
 ## Incoming Email configuration
 
@@ -142,7 +150,6 @@ See [`nginx-ingress` chart](../charts/nginx/index.md).
 | `registry.enabled`             | Enable docker registry              | true                 |
 | `registry.httpSecret`          | Https secret                        |                      |
 | `registry.minio.bucket`        | MinIO registry bucket name          | `registry`           |
-| `registry.replicas`            | Number of replicas                  | `1`                  |
 | `registry.service.annotations` | Annotations to add to the `Service` | {}                   |
 | `registry.tokenIssuer`         | JWT token issuer                    | `gitlab-issuer`      |
 | `registry.tokenService`        | JWT token service                   | `container_registry` |
@@ -271,6 +278,19 @@ See [`nginx-ingress` chart](../charts/nginx/index.md).
 | `gitlab.sidekiq.resources.requests.memory`                   | Sidekiq minimum needed memory                  | `600M`                                                           |
 | `gitlab.sidekiq.timeout`                                     | Sidekiq job timeout                            | `5`                                                              |
 | `gitlab.task-runner.annotations`                             | Annotations to add to the task runner          | {}                                                               |
+| `gitlab.task-runner.backups.cron.enabled`                      | Backup CronJob enabled flag                  | false                                                            |
+| `gitlab.task-runner.backups.cron.extraArgs`                    | String of args to pass to the backup utility |                                                                  |
+| `gitlab.task-runner.backups.cron.persistence.accessMode`       | Backup cron persistence access mode          | `ReadWriteOnce`                                                  |
+| `gitlab.task-runner.backups.cron.persistence.enabled`          | Backup cron enable persistence flag          | false                                                            |
+| `gitlab.task-runner.backups.cron.persistence.matchExpressions` | Label-expression matches to bind             |                                                                  |
+| `gitlab.task-runner.backups.cron.persistence.matchLabels`      | Label-value matches to bind                  |                                                                  |
+| `gitlab.task-runner.backups.cron.persistence.size`             | Backup cron persistence volume size          | `10Gi`                                                           |
+| `gitlab.task-runner.backups.cron.persistence.storageClass`     | storageClassName for provisioning            |                                                                  |
+| `gitlab.task-runner.backups.cron.persistence.subPath`          | Backup cron persistence volume mount path    |                                                                  |
+| `gitlab.task-runner.backups.cron.persistence.volumeName`       | Existing persistent volume name              |                                                                  |
+| `gitlab.task-runner.backups.cron.resources.requests.cpu`       | Backup cron minimum needed cpu               | `50m`                                                            |
+| `gitlab.task-runner.backups.cron.resources.requests.memory`    | Backup cron minimum needed memory            | `350M`                                                           |
+| `gitlab.task-runner.backups.cron.schedule`                     | Cron style schedule string                   | `0 1 * * *`                                                      |
 | `gitlab.task-runner.backups.objectStorage.backend`           | Object storage provider to use (`s3` or `gcs`) | `s3`                                                             |
 | `gitlab.task-runner.backups.objectStorage.config.gcpProject` | GCP Project to use when backend is `gcs`       | ""                                                               |
 | `gitlab.task-runner.backups.objectStorage.config.key`        | key containing credentials in secret           | ""                                                               |
@@ -283,6 +303,16 @@ See [`nginx-ingress` chart](../charts/nginx/index.md).
 | `gitlab.task-runner.init.image`                              | Task runner init image repository              | `busybox`                                                        |
 | `gitlab.task-runner.init.resources.requests.cpu`             | Task runner init minimum needed cpu            | `50m`                                                            |
 | `gitlab.task-runner.init.tag`                                | Task runner init image tag                     | `latest`                                                         |
+| `gitlab.task-runner.persistence.accessMode`                  | Task runner persistence access mode            | `ReadWriteOnce`                                                  |
+| `gitlab.task-runner.persistence.enabled`                     | Task runner enable persistence flag            | false                                                            |
+| `gitlab.task-runner.persistence.matchExpressions`            | Label-expression matches to bind               |                                                                  |
+| `gitlab.task-runner.persistence.matchLabels`                 | Label-value matches to bind                    |                                                                  |
+| `gitlab.task-runner.persistence.size`                        | Task runner persistence volume size            | `10Gi`                                                           |
+| `gitlab.task-runner.persistence.storageClass`                | storageClassName for provisioning              |                                                                  |
+| `gitlab.task-runner.persistence.subPath`                     | Task runner persistence volume mount path      |                                                                  |
+| `gitlab.task-runner.persistence.volumeName`                  | Existing persistent volume name                |                                                                  |
+| `gitlab.task-runner.resources.requests.cpu`                  | Task runner minimum needed cpu                 | `50m`                                                            |
+| `gitlab.task-runner.resources.requests.memory`               | Task runner minimum needed memory              | `350M`                                                           |
 | `gitlab.unicorn.enabled`                                     | Unicorn enabled flag                           | true                                                             |
 | `gitlab.unicorn.gitaly.authToken.key`                        | Key to Gitaly token in Gitaly secret           | `token`                                                          |
 | `gitlab.unicorn.gitaly.authToken.secret`                     | Gitaly secret name                             | `{.Release.Name}-gitaly-secret`                                  |

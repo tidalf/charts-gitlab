@@ -41,6 +41,13 @@ tolerations: []
 ## Enable/Disable Chart
 enabled: true
 
+## Registry Maintenance Settings
+## See https://docs.docker.com/registry/configuration/#maintenance
+maintenance:
+  readOnly:
+    ## Enable read-only mode for Registry
+    enabled: false
+
 annotations: {}
 
 networkpolicy:
@@ -153,10 +160,18 @@ tokenIssuer: 'gitlab-issuer'
 # See https://gitlab.com/gitlab-org/omnibus-gitlab/issues/3964
 authAutoRedirect: false
 
-# if minReplicas is >1, shared storage MUST be used.
-minReplicas: 2
-maxReplicas: 10
 maxUnavailable: 1
+
+# if minReplicas is >1, shared storage MUST be used.
+hpa:
+  minReplicas: 2
+  maxReplicas: 10
+  cpu:
+    targetAverageUtilization: 75
+
+  # Note that the HPA is limited to autoscaling/v2beta1
+  customMetrics: []
+
 storage: {}
 minio:
   redirect: false
@@ -188,6 +203,9 @@ debug:
 # Amount of time to wait for HTTP connections to drain after
 # receiving a SIGTERM signal
 draintimeout: '0'
+
+# Enable the registry to return relative URLs in Location headers
+relativeurls: false
 
 # https://docs.docker.com/registry/configuration/#health
 health:

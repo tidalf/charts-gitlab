@@ -19,7 +19,7 @@ Introduced in [!757 checkConfig: add methods to test for known errors](https://g
 
 During the development of these charts, we occasionally make improvements that require
 alterations to the properties of existing deployments. Two examples were the centralization
-of configuring the use of Minio, and the migration of external object storage configuration
+of configuring the use of MinIO, and the migration of external object storage configuration
 from properties to secrets (in observance of our preference).
 
 As a means of preventing a user from accidentally deploying an updated version of these
@@ -28,7 +28,7 @@ have chosen to implement [deprecation](../development/index.md#handling-configur
 properties have have been relocated, altered, replaced, or removed entirely, then inform
 the user of what changes need to be made to the configuration. This may include informing
 the user to see documentation on how to replace a property with a secret. These notifications
-will cause the helm `install` or `upgrade` commands to stop with a parse error, and output a complete list of items that need to be addressed. We have taken care to ensure a user will not be placed into a loop of error, fix, repeat.
+will cause the Helm `install` or `upgrade` commands to stop with a parse error, and output a complete list of items that need to be addressed. We have taken care to ensure a user will not be placed into a loop of error, fix, repeat.
 
 All deprecations must be addressed in order for a successful deployment to occur. We believe
 the user would prefer to be informed of a breaking change over experiencing unexpected
@@ -105,51 +105,36 @@ Related issue:
 The following charts have been forked or re-created in this repository following
 our [guidelines for forking](../development/index.md#guidelines-for-forking)
 
-### redis
+### Redis
 
-Our [redis chart][] was altered from upstream [redis][].
+Our [Redis chart](../charts/redis/index.md) was altered from the upstream [Redis](https://github.com/helm/charts/tree/master/stable/redis).
 
 - Populate the password directly into the `redis.conf` instead of via Environment
 - Make use of pre-existing Kubernetes secrets instead of creating new ones from properties.
 
-[redis chart]: ../charts/redis/index.md
-[redis]: https://github.com/kubernetes/charts/tree/master/stable/redis
+### Redis HA
 
-### redis-ha
+Our [Redis HA chart](../charts/redis-ha/index.md) was altered from the upstream [Redis HA](https://github.com/helm/charts/tree/master/stable/redis-ha).
 
-Our [redis-ha chart][] was altered from upstream [redis-ha][].
+### MinIO
 
-[redis-ha chart]: ../charts/redis-ha/index.md
-[redis-ha]: https://github.com/kubernetes/charts/tree/master/stable/redis-ha
-
-### minio
-
-Our [minio chart][] was altered from upstream [minio][].
+Our [MinIO chart](../charts/minio/index.md) was altered from the upstream [MinIO](https://github.com/helm/charts/tree/master/stable/minio).
 
 - Make use of pre-existing Kubernetes secrets instead of creating new ones from properties.
 - Remove providing the sensitive keys via Environment.
 - Automate the creation of multiple buckets via `defaultBuckets` in place of
   `defaultBucket.*` properties.
 
-[minio chart]: ../charts/minio/index.md
-[minio]: https://github.com/kubernetes/charts/tree/master/stable/minio
-
 ### registry
 
-Our [registry chart][] was altered from upstream [docker-registry][].
+Our [registry chart](../charts/registry/index.md) was altered from the upstream [docker-registry](https://github.com/helm/charts/tree/master/stable/docker-registry).
 
-- Enable the use of in-chart Minio services automatically.
+- Enable the use of in-chart MinIO services automatically.
 - Automatically hook authentication to the GitLab services.
 
-[registry chart]: ../charts/registry/index.md
-[docker-registry]: https://github.com/kubernetes/charts/tree/master/stable/docker-registry
+### NGINX Ingress
 
-### nginx-ingress
-
-Our [nginx-ingress chart][] was altered from upstream [nginx-ingress][].
+Our [NGINX Ingress chart](../charts/nginx/index.md) was altered from the upstream [NGINX Ingress](https://github.com/helm/charts/tree/master/stable/nginx-ingress).
 
 - Add feature to allow for the tcp configmap to be external to the chart
-- Add feature to allow ingress class to be templated based on release name
-
-[nginx-ingress chart]: ../charts/nginx/index.md
-[nginx-ingress]: https://github.com/kubernetes/charts/tree/master/stable/nginx-ingress
+- Add feature to allow Ingress class to be templated based on release name

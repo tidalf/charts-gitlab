@@ -10,7 +10,7 @@ cluster this chart is deployed onto.
 
 ## Design Choices
 
-In order to easily support SSH replicas, and avoid using shared storage for the ssh
+In order to easily support SSH replicas, and avoid using shared storage for the SSH
 authorized keys, we are using the SSH [AuthorizedKeysCommand](https://man.openbsd.org/sshd_config#AuthorizedKeysCommand)
 to authenticate against GitLab's authorized keys endpoint. As a result, we don't persist
 or update the AuthorizedKeys file within these pods.
@@ -27,6 +27,11 @@ with `global.shell.port`, and defaults to `22`.
 | ------------------------ | -------------- | ---------------------------------------- |
 | `annotations`            |                | Pod annotations                          |
 | `enabled`                | `true`         | Shell enable flag                        |
+| `deployment.livenessProbe.initialDelaySeconds` | 10 | Delay before liveness probe is initiated |
+| `deployment.livenessProbe.periodSeconds`  | 10 | How often to perform the liveness probe |
+| `deployment.livenessProbe.timeoutSeconds` | 3 | When the liveness probe times out |
+| `deployment.livenessProbe.successThreshold` | 1 | Minimum consecutive successes for the liveness probe to be considered successful after having failed |
+| `deployment.livenessProbe.failureThreshold` | 3 | Minimum consecutive failures for the liveness probe to be considered failed after having succeeded |
 | `extraContainers`        |                | List of extra containers to include      |
 | `extraInitContainers`    |                | List of extra init containers to include |
 | `extraVolumeMounts`      |                | List of extra volumes mounts to do       |
@@ -112,18 +117,29 @@ redis:
   host: redis.example.com
   serviceName: redis
   port: 6379
+  sentinels:
+    - host: sentinel1.example.com
+      port: 26379
   password:
     secret: gitlab-redis
     key: redis-password
 ```
 
-| Name            | Type    | Default | Description |
-|:----------------|:-------:|:--------|:------------|
-| host            | String  |         | The hostname of the Redis server with the database to use. This can be omitted in lieu of `serviceName`. |
-| password.key    | String  |         | The name of the key in the secret below that contains the password. |
-| password.secret | String  |         | The name of the Kubernetes `Secret` to pull from. |
-| port            | Integer | `6379`  | The port on which to connect to the Redis server. |
-| serviceName     | String  | `redis` | The name of the `service` which is operating the Redis database. If this is present, and `host` is not, the chart will template the hostname of the service (and current `.Release.Name`) in place of the `host` value. This is convenient when using Redis as a part of the overall GitLab chart. |
+| Name             | Type    | Default | Description |
+|:-----------------|:-------:|:--------|:------------|
+| host             | String  |         | The hostname of the Redis server with the database to use. This can be omitted in lieu of `serviceName`. If using Redis Sentinels, the `host` attribute needs to be set to the cluster name as specified in the `sentinel.conf`.|
+| password.key     | String  |         | The name of the key in the secret below that contains the password. |
+| password.secret  | String  |         | The name of the Kubernetes `Secret` to pull from. |
+| port             | Integer | `6379`  | The port on which to connect to the Redis server. |
+| serviceName      | String  | `redis` | The name of the `service` which is operating the Redis database. If this is present, and `host` is not, the chart will template the hostname of the service (and current `.Release.Name`) in place of the `host` value. This is convenient when using Redis as a part of the overall GitLab chart. |
+| sentinels.[].host| String  |         | The hostname of Redis Sentinel server for a Redis HA setup. |
+| sentinels.[].port| Integer | `26379` | The port on which to connect to the Redis Sentinel server. |
+
+_Note:_ The current Redis Sentinel support only supports Sentinels that have
+been deployed separately from the GitLab chart. As a result, the Redis
+deployment through the GitLab chart should be disabled with `redis.enabled=false`
+and `redis-ha.enabled=false`. The Secret containing the Redis password
+will need to be manually created before deploying the GitLab chart.
 
 ### Unicorn
 

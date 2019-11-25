@@ -45,14 +45,26 @@ global:
     https: true
     externalIP:
     ssh: ~
+    gitlab: {}
+    minio: {}
+    registry: {}
 
   ## doc/charts/globals.md#configure-ingress-settings
   ingress:
     configureCertmanager: true
     annotations: {}
     enabled: true
-    # tls:
+    tls: {}
     #   enabled: true
+    #   secretName:
+
+  gitlab:
+    ## Enterprise license for this GitLab installation
+    ## Secret created according to doc/installation/secrets.md#initial-enterprise-license
+    ## If allowing shared-secrets generation, this is OPTIONAL.
+    license: {}
+      # secret: RELEASE-gitlab-license
+      # key: license
 
   ## Initial root password for this GitLab installation
   ## Secret created according to doc/installation/secrets.md#initial-root-password
@@ -82,6 +94,9 @@ global:
       # key:
     # host: redis.hostedsomewhere.else
     # port: 6379
+    # sentinels:
+    #   - host:
+    #     port:
 
   ## doc/charts/globals.md#configure-gitaly-settings
   gitaly:
@@ -91,6 +106,9 @@ global:
     internal:
       names: ['default']
     external: []
+    tls:
+      enabled: false
+      # secretName:
 
   ## doc/charts/globals.md#configure-minio-settings
   minio:
@@ -122,24 +140,61 @@ global:
 
     ## doc/charts/globals.md#cron-jobs-related-settings
     cron_jobs: {}
+      ## Flag stuck CI builds as failed
       # stuck_ci_jobs_worker:
       #   cron: "0 * * * *"
+      ## Schedule pipelines in the near future
       # pipeline_schedule_worker:
       #   cron: "19 * * * *"
+      ## Remove expired build artifacts
       # expire_build_artifacts_worker:
       #   cron: "50 * * * *"
+      ## Periodically run 'git fsck' on all repositories.
       # repository_check_worker:
       #   cron: "20 * * * *"
+      ## Send admin emails once a week
       # admin_email_worker:
       #   cron: "0 0 * * 0"
+      ## Remove outdated repository archives
       # repository_archive_cache_worker:
       #   cron: "0 * * * *"
+      ## Verify custom GitLab Pages domains
       # pages_domain_verification_cron_worker:
       #   cron: "*/15 * * * *"
+      ## Export pseudonymized data
       # pseudonymizer_worker:
       #   cron: "0 * * * *"
       # schedule_migrate_external_diffs_worker:
       #   cron: "15 * * * *"
+      ### GitLab Geo
+      # Geo Primary only!
+      # geo_prune_event_log_worker:
+      #   cron: "*/5 * * * *"
+      ## GitLab Geo repository sync worker
+      # geo_repository_sync_worker:
+      #   cron: "*/5 * * * *"
+      ## GitLab Geo file download dispatch worker
+      # geo_file_download_dispatch_worker:
+      #  cron: "*/10 * * * *"
+      ## GitLab Geo repository verification primary batch worker
+      # geo_repository_verification_primary_batch_worker:
+      #   cron: "*/5 * * * *"
+      ## GitLab Geo repository verification secondary scheduler worker
+      # geo_repository_verification_secondary_scheduler_worker:
+      #   cron: "*/5 * * * *"
+      ## GitLab Geo migrated local files clean up worker
+      # geo_migrated_local_files_clean_up_worker:
+      #   cron: "15 */6 * * *"
+      ### LDAP
+      # ldap_sync_worker:
+      #   cron: "30 1 * * *"
+      # ldap_group_sync_worker:
+      #   cron: "0 * * * *"
+      ### Snapshot active user statistics
+      # historical_data_worker:
+      #   cron: "0 12 * * *"
+
+
 
     ## doc/charts/globals.md#gravatarlibravatar-settings
     gravatar:
@@ -205,6 +260,8 @@ global:
 
     ## doc/charts/globals.md#ldap
     ldap:
+      # prevent the use of LDAP for sign-in via web.
+      preventSignin: false
       servers: {}
       ## 'main' is the GitLab 'provider ID' of this LDAP server
       # main:
@@ -229,10 +286,35 @@ global:
       autoLinkLdapUser: false
       autoLinkSamlUser: false
       externalProviders: []
+      allowBypassTwoFactor: []
       providers: []
       # - secret: gitlab-google-oauth2
       #   key: provider
+
   ## End of global.appConfig
+
+  ## doc/charts/geo.md
+  geo:
+    enabled: false
+    # Valid values: primary, secondary
+    role: primary
+    ## Geo Secondary only
+    # nodeName allows multiple instances behind a load balancer.
+    nodeName: # defaults to `gitlab.gitlab.host`
+    # PostgreSQL connection details only needed for `secondary`
+    psql:
+      password: {}
+        # secret:
+        # key:
+      # host: postgresql.hostedsomewhere.else
+      # port: 123
+      # username: gitlab_replicator
+      # database: gitlabhq_geo_production
+      # ssl:
+        # secret:
+        # clientKey:
+        # clientCertificate:
+        # serverCA:
 
   ## doc/charts/globals.md#configure-gitlab-shell-settings
   shell:
@@ -287,6 +369,11 @@ global:
     display_name: GitLab
     reply_to: ''
     subject_suffix: ''
+    smime:
+      enabled: false
+      secretName: ""
+      keyName: "tls.key"
+      certName: "tls.crt"
 
   ## Timezone for containers.
   time_zone: UTC
@@ -522,6 +609,8 @@ grafana:
       mountPath: /tmp/scripts
       configMap: gitlab-grafana-import-secret
       readOnly: true
+  testFramework:
+    enabled: false
 
 ## Settings for individual sub-charts under GitLab
 ## Note: Many of these settings are configurable via globals

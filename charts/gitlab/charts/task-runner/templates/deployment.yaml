@@ -1,5 +1,5 @@
 {{- if .Values.enabled }}
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "fullname" . }}
@@ -43,6 +43,7 @@ spec:
           volumeMounts:
 {{ include "gitlab.extraVolumeMounts" . | indent 10 }}
 {{ include "gitlab.psql.ssl.volumeMount" . | indent 10 }}
+{{ include "gitlab.geo.psql.ssl.volumeMount" . | indent 10 }}
           - name: task-runner-config
             mountPath: /config
             readOnly: true
@@ -114,12 +115,18 @@ spec:
               subPath: "{{ .Values.persistence.subPath }}"
               {{- end }}
               readOnly: false
+{{- if .Values.global.email.smime.enabled }}
+            - name: smime-creds
+              mountPath: /home/git/gitlab
+              readOnly: true
+{{- end }}
 {{ include "gitlab.certificates.volumeMount" . | indent 12 }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
 {{ include "gitlab.extraVolumes" . | indent 6 }}
 {{ include "gitlab.psql.ssl.volume" . | indent 6 }}
+{{ include "gitlab.geo.psql.ssl.volume" . | indent 6 }}
       - name: task-runner-config
         projected:
           sources:
@@ -167,6 +174,13 @@ spec:
               items:
                 - key: {{ template "gitlab.psql.password.key" . }}
                   path: postgres/psql-password
+          {{- if .Values.global.geo.enabled }}
+          - secret:
+              name: {{ template "gitlab.geo.psql.password.secret" . }}
+              items:
+                - key: {{ template "gitlab.geo.psql.password.key" . }}
+                  path: postgres/geo-psql-password
+          {{- end }}
           - secret:
               name: {{ template "gitlab.registry.certificate.secret" . }}
               items:
@@ -202,6 +216,19 @@ spec:
                 - key: {{ $.Values.global.smtp.password.key }}
                   path: smtp/smtp-password
           {{- end }}
+{{- if .Values.global.email.smime.enabled }}
+      - name: smime-creds
+        projected:
+          defaultMode: 0400
+          sources:
+            - secret:
+                name: {{ .Values.global.email.smime.secretName }}
+                items:
+                  - key: {{ .Values.global.email.smime.keyName }}
+                    path: .gitlab_smime_key
+                  - key: {{ .Values.global.email.smime.certName }}
+                    path: .gitlab_smime_cert
+{{- end }}
       - name: task-runner-secrets
         emptyDir:
           medium: "Memory"

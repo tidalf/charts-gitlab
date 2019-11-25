@@ -1,15 +1,48 @@
-# Gitlab version mappings
+# GitLab version mappings
 
 The table below maps some of the key previous chart versions and GitLab versions.
 
 | Chart version | GitLab version |
 |---------------|----------------|
-| 2.2.6 | 12.0.9 |
+| 2.5.1 | 12.5.0 |
+| 2.5.0 | 12.5.0 |
+| 2.4.8 | 12.4.3 |
+| 2.4.7 | 12.4.2 |
+| 2.4.6 | 12.4.2 |
+| 2.4.5 | 12.4.1 |
+| 2.4.4 | 12.4.1 |
+| 2.4.3 | 12.4.1 |
+| 2.4.2 | 12.4.0 |
+| 2.4.1 | 12.4.0 |
+| 2.4.0 | 12.4.0 |
+| 2.3.9 | 12.3.6 |
+| 2.3.8 | 12.3.5 |
+| 2.3.7 | 12.3.5 |
+| 2.3.6 | 12.3.4 |
+| 2.3.5 | 12.3.4 |
+| 2.3.3 | 12.3.2 |
+| 2.3.2 | 12.3.1 |
+| 2.3.1 | 12.3.0 |
+| 2.3.0 | 12.3.0 |
+| 2.2.12 | 12.2.9 |
+| 2.2.11 | 12.2.8 |
+| 2.2.10 | 12.2.7 |
+| 2.2.9 | 12.2.8 |
+| 2.2.8 | 12.2.7 |
+| 2.2.7 | 12.2.6 |
+| 2.2.6 | 12.2.5 |
 | 2.2.5 | 12.2.4 |
 | 2.2.4 | 12.2.4 |
 | 2.2.3 | 12.2.4 |
 | 2.2.1 | 12.2.1 |
 | 2.2.0 | 12.2.0 |
+| 2.1.14 | 12.1.14 |
+| 2.1.13 | 12.1.14 |
+| 2.1.12 | 12.1.13 |
+| 2.1.11 | 12.1.12 |
+| 2.1.10 | 12.1.11 |
+| 2.1.9 | 12.1.9 |
+| 2.1.8 | 12.1.8 |
 | 2.1.7 | 12.1.6 |
 | 2.1.6 | 12.1.4 |
 | 2.1.5 | 12.1.4 |
@@ -90,7 +123,7 @@ The table below maps some of the key previous chart versions and GitLab versions
 | 0.2.1 | 11.0.1 |
 | 0.2.0 | 11.0.0 |
 
-To see the full list, you can issue the following command with helm:
+To see the full list, you can issue the following command with Helm:
 
 ```
 helm repo add gitlab https://charts.gitlab.io/

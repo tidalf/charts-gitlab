@@ -10,7 +10,7 @@ This chart depends on Redis, and PostgreSQL, either as part of the complete GitL
 
 ## Design Choices
 
-The `migrations` is configured to use Helm post-install/post-upgrade hooks in order to create a new migrations [Job][] each time the chart is deployed. In order to prevent job name collisions, we append the chart revision, and a random alpha-numeric value to the Job name each time is created. The purpose of the random text is described further in this section.
+The `migrations` creates a new migrations [Job][] each time the chart is deployed. In order to prevent job name collisions, we append the chart revision, and a random alpha-numeric value to the Job name each time is created. The purpose of the random text is described further in this section.
 
 For now we also have the jobs remain as objects in the cluster after they complete. This is so we can observe the migration logs. Currently this means these Jobs persist even after a `helm delete`. This is one of the reasons why we append random text to the Job name, so that future deployments using the same release name don't cause conflicts. Once we have some form of log-shipping in place, we can revisit the persistence of these objects.
 
@@ -35,7 +35,7 @@ Table below contains all the possible charts configurations that can be supplied
 | `enabled`               | Migrations enable flag                   | `true`            |
 | `tolerations`           | Toleration labels for pod assignment     | `[]`              |
 | `redis.serviceName`     | Redis service name                       | `redis`           |
-| `psql.serviceName`      | Name of Service providing PostgreSQL     | `release-postgresql` | 
+| `psql.serviceName`      | Name of Service providing PostgreSQL     | `release-postgresql` |
 | `psql.password.secret`  | psql secret                              | `gitlab-postgres` |
 | `psql.password.key`     | key to psql password in psql secret      | `psql-password`   |
 | `extraInitContainers`   | List of extra init containers to include |                   |
@@ -65,7 +65,7 @@ image:
 
 ## Using the Community Edition of this chart
 
-By default, the Helm charts use the Enterprise Edition of GitLab. If desired, you can instead use the Community Edition. Learn more about the [difference between the two](https://about.gitlab.com/installation/ce-or-ee/).
+By default, the Helm charts use the Enterprise Edition of GitLab. If desired, you can instead use the Community Edition. Learn more about the [difference between the two](https://about.gitlab.com/install/ce-or-ee/).
 
 In order to use the Community Edition, set `image.repository` to `registry.gitlab.com/gitlab-org/build/cng/gitlab-rails-ce`
 
@@ -78,6 +78,9 @@ redis:
   host: redis.example.com
   serviceName: redis
   port: 6379
+  sentinels:
+    - host: sentinel1.example.com
+      port: 26379
   password:
     secret: gitlab-redis
     key: redis-password
@@ -85,7 +88,7 @@ redis:
 
 #### host
 
-The hostname of the Redis server with the database to use. This can be omitted in lieu of `serviceName`
+The hostname of the Redis server with the database to use. This can be omitted in lieu of `serviceName`. If using Redis Sentinels, the `host` attribute needs to be set to the cluster name as specified in the `sentinel.conf`.
 
 #### serviceName
 
@@ -101,6 +104,20 @@ The `password` attribute for Redis has two sub keys:
 
 - `secret` defines the name of the Kubernetes `Secret` to pull from
 - `key` defines the name of the key in the above secret that contains the password.
+
+#### sentinels
+
+The `sentinels` attribute allows for a connection to a Redis HA cluster.
+The sub keys describe each Sentinel connection.
+
+- `host` defines the hostname for the Sentinel service
+- `port` defines the port number to reach the Sentinel service, defaults to `26379`
+
+_Note:_ The current Redis Sentinel support only supports Sentinels that have
+been deployed separately from the GitLab chart. As a result, the Redis
+deployment through the GitLab chart should be disabled with `redis.enabled=false`
+and `redis-ha.enabled=false`. The Secret containing the Redis password
+will need to be manually created before deploying the GitLab chart.
 
 ### PostgreSQL
 

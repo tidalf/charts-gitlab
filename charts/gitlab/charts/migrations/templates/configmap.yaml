@@ -27,12 +27,16 @@ data:
     production:
       # Redis (single instance)
       url: {{ template "gitlab.redis.url" . }}
+{{- if .Values.global.redis.sentinels }}
+{{ include "gitlab.redis.sentinels" . | indent 6 }}
+{{- end }}
       id:
   gitlab.yml.erb: |
     production: &base
       gitlab:
 {{ include "gitlab.appConfig.gitaly" . | indent 6 }}
 {{ include "gitlab.appConfig.repositories" . | indent 6 }}
+      {{- include "gitlab.geo.config" $ | nindent 6 }}
   configure: |
     {{- include "gitlab.scripts.configure.secrets" (dict "required" "postgres rails-secrets migrations gitaly") | nindent 4 -}}
     {{- include "gitlab.psql.ssl.initScript" . | nindent 4 }}

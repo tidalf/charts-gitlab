@@ -21,7 +21,7 @@ Items below can be further customized if you are not using the defaults:
 
 - `global.redis.port`: The port the database is available on, defaults to `6379`
 
-For example, pass these values via helm's `--set` flag while deploying:
+For example, pass these values via Helm's `--set` flag while deploying:
 
 ```
 helm install .  \
@@ -30,3 +30,9 @@ helm install .  \
   --set global.redis.password.secret=gitlab-redis \
   --set global.redis.password.key=redis-password \
 ```
+
+If you are connecting to a Redis HA cluster that has Sentinel servers
+running, the `global.redis.host` attribute needs to be set to the cluster
+name as specified in the `sentinel.conf`. Sentinel servers can be referenced
+using the `global.redis.sentinels[0].host` and `global.redis.sentinels[0].port`
+values for the `--set` flag. The index is zero based.

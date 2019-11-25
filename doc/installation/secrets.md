@@ -2,18 +2,19 @@
 
 GitLab requires a variety of secrets to operate:
 
-Gitlab Components:
+GitLab Components:
 
 - Registry authentication certificates
 - SSH Host Keys and Certificates for GitLab Shell
-- Passwords for individual Gitlab services
+- Passwords for individual GitLab services
 
 Optional External Services:
 
 - SMTP server
 - LDAP
-- Omniauth
+- OmniAuth
 - IMAP for incoming emails (via mail_room service)
+- S/MIME certificate
 
 Any secret not provided manually will be automatically generated with a random value. Automatic generation of HTTPS certificates is provided by Let's Encrypt.
 
@@ -35,17 +36,18 @@ documentation.
   - [GitLab Shell secret](#gitlab-shell-secret)
   - [Gitaly secret](#gitaly-secret)
   - [GitLab Rails secret](#gitlab-rails-secret)
-  - [GitLab workhorse secret](#gitlab-workhorse-secret)
-  - [GitLab runner secret](#gitlab-runner-secret)
+  - [GitLab Workhorse secret](#gitlab-workhorse-secret)
+  - [GitLab Runner secret](#gitlab-runner-secret)
   - [PostgreSQL passwords](#postgresql-passwords)
-  - [Minio secret](#minio-secret)
+  - [MinIO secret](#minio-secret)
   - [Registry HTTP secret](#registry-http-secret)
   - [Grafana password](#grafana-password)
 - [External Services](#external-services)
-  - [Unicorn Omniauth](#unicorn-omniauth)
+  - [Unicorn OmniAuth](#unicorn-omniauth)
   - [LDAP Password](#ldap-password)
   - [SMTP Password](#smtp-password)
   - [IMAP Password](#imap-password-for-incoming-emails)
+  - [S/MIME Certificate](#smime-certificate)
 
 ### Registry authentication certificates
 
@@ -93,9 +95,24 @@ kubectl create secret generic <name>-gitlab-shell-host-keys --from-file hostKeys
 
 This secret is referenced by the `global.shell.hostKeys.secret` setting.
 
+## Initial Enterprise license
+
+Create a Kubernetes secret for storing the Enterprise license for the GitLab instance.
+Replace `<name>` with the name of the release.
+
+```
+kubectl create secret generic <name>-gitlab-license --from-file=license=/tmp/license.gitlab
+```
+
+Then use `--set global.gitlab.license.secret=<name>-gitlab-license` to
+inject the license into your configuration.
+
+You can also use the `global.gitlab.license.key` option to change the default
+`license` key pointing to the license in the license secret.
+
 ### Initial root password
 
-Create a kubernetes secret for storing the initial root password. The password
+Create a Kubernetes secret for storing the initial root password. The password
 should be at least 6 characters long. Replace `<name>` with the name of the
 release.
 
@@ -111,6 +128,10 @@ Generate a random 64 character alpha-numeric password for Redis. Replace
 ```
 kubectl create secret generic <name>-redis-secret --from-literal=secret=$(head -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 64)
 ```
+
+If deploying with an already existing Redis cluster, please use the password
+for accessing the Redis cluster that has been base64 encoded instead of a
+randomly generated one.
 
 ### GitLab Shell secret
 
@@ -153,7 +174,7 @@ kubectl create secret generic <name>-rails-secret --from-file=secrets.yml
 
 This secret is referenced by the `global.railsSecrets.secret` setting.
 
-### GitLab workhorse secret
+### GitLab Workhorse secret
 
 Generate the workhorse secret. This must have a length of 32 characters and
 base64-encoded. Replace `<name>` with the name of the release.
@@ -164,7 +185,7 @@ kubectl create secret generic <name>-gitlab-workhorse-secret --from-literal=shar
 
 This secret is referenced by the `global.workhorse.key` setting.
 
-### GitLab runner secret
+### GitLab Runner secret
 
 Replace `<name>` with the name of the release.
 
@@ -172,9 +193,9 @@ Replace `<name>` with the name of the release.
 kubectl create secret generic <name>-gitlab-runner-secret --from-literal=runner-registration-token=$(head -c 512 /dev/urandom | LC_CTYPE=C tr -cd 'a-zA-Z0-9' | head -c 64)
 ```
 
-### Minio secret
+### MinIO secret
 
-Generate a set of random 20 & 64 character alpha-numeric keys for Minio.
+Generate a set of random 20 & 64 character alpha-numeric keys for MinIO.
 Replace `<name>` with the name of the release.
 
 ```
@@ -215,9 +236,9 @@ kubectl create secret generic <name>-registry-httpsecret --from-literal=secret=$
 
 Some charts have further secrets to enable functionality that can not be automatically generated.
 
-### Unicorn Omniauth
+### Unicorn OmniAuth
 
-In order to enable the use of [Omniauth Providers](https://docs.gitlab.com/ee/integration/omniauth.html) with the deployed GitLab, please follow the [instructions in the Globals chart](../charts/globals.md#omniauth)
+In order to enable the use of [OmniAuth Providers](https://docs.gitlab.com/ee/integration/omniauth.html) with the deployed GitLab, please follow the [instructions in the Globals chart](../charts/globals.md#omniauth)
 
 ### LDAP Password
 
@@ -239,7 +260,7 @@ in a Kubernetes secret.
 kubectl create secret generic smtp-password --from-literal=password=yourpasswordhere
 ```
 
-Then use `--set global.smtp.password.secret=smtp-password` in your helm command.
+Then use `--set global.smtp.password.secret=smtp-password` in your Helm command.
 
 ### IMAP password for incoming emails
 
@@ -251,7 +272,26 @@ kubectl create secret generic incoming-email-password --from-literal=password=yo
 ```
 
 Then use `--set global.appConfig.incomingEmail.password.secret=incoming-email-password`
-in your helm command along with other required settings as specified [in the docs](command-line-options.md#incoming-email-configuration).
+in your Helm command along with other required settings as specified [in the docs](command-line-options.md#incoming-email-configuration).
+
+### S/MIME Certificate
+
+Outgoing email messages can be digitally signed using the [S/MIME](https://en.wikipedia.org/wiki/S/MIME) standard.
+The S/MIME certificate needs to be stored in a Kubernetes secret as a
+TLS type secret.
+
+```
+kubectl create secret tls smime-certificate --key=file.key --cert file.crt
+```
+
+If there is an existing secret as a opaque type, then the `global.email.smime.keyName`
+and `global.email.smime.certName` values will need to be adjusted for
+the specific secret.
+
+S/MIME settings can be set through the `values.yaml` file or on the command
+line. Use `--set global.email.smime.enabled=true` to enable S/MIME and
+`--set global.email.smime.secretName=smime-certificate` to specify the
+secret that contains the S/MIME certificate.
 
 ## Next steps
 

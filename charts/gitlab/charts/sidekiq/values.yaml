@@ -33,9 +33,25 @@ redis:
 
 # https://docs.gitlab.com/ee/administration/operations/sidekiq_memory_killer.html#sidekiq-memorykiller
 memoryKiller:
+  daemonMode: false
   maxRss: 2000000
   graceTime: 900
   shutdownWait: 30
+  checkInterval: 3
+  #hardLimitRss: 3000000
+
+livenessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 60
+  timeoutSeconds: 30
+  successThreshold: 1
+  failureThreshold: 3
+readinessProbe:
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 2
+  successThreshold: 1
+  failureThreshold: 3
 
 global:
   # imagePullPolicy: IfNotPresent
@@ -126,6 +142,7 @@ global:
       autoLinkLdapUser: false
       autoLinkSamlUser: false
       externalProviders: []
+      allowBypassTwoFactor: []
       providers: []
       # - secret: gitlab-google-oauth2
       #   key: provider

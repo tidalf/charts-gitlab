@@ -1,6 +1,6 @@
-# Azure Minio Gateway
+# Azure MinIO Gateway
 
-[Minio](https://min.io/) is an object storage server that exposes S3-compatible APIs and it has a gateway feature that allows proxying requests to Azure Blob Storage. To setup our gateway, we will make use of Azure's Web App on Linux.
+[MinIO](https://min.io/) is an object storage server that exposes S3-compatible APIs and it has a gateway feature that allows proxying requests to Azure Blob Storage. To setup our gateway, we will make use of Azure's Web App on Linux.
 
 To get started, make sure you have installed Azure CLI and you are logged in (`az login`). Proceed to create a [Resource group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview#resource-groups), if you don't have one already:
 
@@ -38,7 +38,7 @@ The output should be in the format:
     }
 ```
 
-## Deploy Minio to Web App on Linux
+## Deploy MinIO to Web App on Linux
 
 First, we need to create an App Service Plan in the same resource group.
 
@@ -51,7 +51,7 @@ az appservice plan create \
     --location "WestUS"
 ```
 
-Create a Web app configured with the [minio/minio](https://hub.docker.com/r/minio/minio) docker container, the name you specify will be used in the URL of the web app:
+Create a Web app configured with the [`minio/minio`](https://hub.docker.com/r/minio/minio) docker container, the name you specify will be used in the URL of the web app:
 
 ```
 az webapp create \
@@ -61,9 +61,9 @@ az webapp create \
     --resource-group "gitlab-azure-minio"
 ```
 
-The Web app should now be accessible at <https://gitlab-minio-app.azurewebsites.net>.
+The Web app should now be accessible at `https://gitlab-minio-app.azurewebsites.net`.
 
-Lastly, we need to setup the startup command and create environment variables that will store our storage account name and key for use by the web app, MINIO_ACCESS_KEY & MINIO_SECRET_KEY.
+Lastly, we need to set up the startup command and create environment variables that will store our storage account name and key for use by the web app, MINIO_ACCESS_KEY & MINIO_SECRET_KEY.
 
 ```
 az webapp config appsettings set \

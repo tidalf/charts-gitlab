@@ -29,7 +29,7 @@ We are currently using Kubernetes version 1.8.7 for development. We plan to anno
 
 ## GitLab Enterprise Edition
 
-During alpha, GitLab Enterprise Edition is required while we [bring object storage support to Community Edition](https://gitlab.com/gitlab-org/gitlab-ce/issues/40781). GitLab EE offers same functionality as GitLab CE when no license is supplied.
+During alpha, GitLab Enterprise Edition is required while we [bring object storage support to Community Edition](https://gitlab.com/gitlab-org/gitlab-foss/issues/40781). GitLab EE offers same functionality as GitLab CE when no license is supplied.
 
 We will be adding support for GitLab Community Edition before making these charts generally available.
 
@@ -60,7 +60,7 @@ Helm Chart Issues/Limitations:
 - No support for incoming email: <https://gitlab.com/gitlab-org/charts/gitlab/issues/235>
 - Limited support for customizing GitLab options: <https://gitlab.com/gitlab-org/charts/gitlab/issues/236>
 - CI traces are not persisted: <https://gitlab.com/gitlab-org/charts/gitlab/issues/245>
-- No support for scaling unicorn separate from workhorse: <https://gitlab.com/gitlab-org/charts/gitlab/issues/61>
+- No support for scaling Unicorn separate from workhorse: <https://gitlab.com/gitlab-org/charts/gitlab/issues/61>
 - GitLab maintenance rake tasks won't work in k8s environments
 - No guarantees on safe pod shutdown: <https://gitlab.com/gitlab-org/charts/gitlab/issues/239>
 

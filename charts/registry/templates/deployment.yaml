@@ -1,5 +1,5 @@
 {{- if .Values.enabled -}}
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "fullname" . }}
@@ -9,7 +9,7 @@ metadata:
   annotations:
     {{ include "gitlab.deploymentAnnotations" . | nindent 4 | trim }}
 spec:
-  replicas: {{ .Values.minReplicas }}
+  replicas: {{ .Values.hpa.minReplicas }}
   selector:
     matchLabels:
       app: {{ template "name" . }}
