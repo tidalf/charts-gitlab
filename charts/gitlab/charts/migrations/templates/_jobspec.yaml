@@ -48,10 +48,8 @@ spec:
 {{ include "gitlab.extraContainers" . | indent 8 }}
         - name: {{ .Chart.Name }}
           image: "{{ coalesce .Values.image.repository (include "image.repository" .) }}:{{ coalesce .Values.image.tag (include "gitlab.versionTag" . ) }}"
-          args:
-            - /scripts/wait-for-deps
-            - /scripts/create-database-user
-            - /scripts/db-migrate
+          command: ["bin/sh"]
+          args: ["-c", "/scripts/create-database-user; /scripts/wait-for-deps; /scripts/db-migrate"]
           {{ template "gitlab.imagePullPolicy" . }}
           env:
             - name: GITLAB_SHARED_RUNNERS_REGISTRATION_TOKEN
@@ -77,6 +75,8 @@ spec:
             - name: migrations-secrets
               mountPath: /srv/gitlab/config/initial_root_password
               subPath: migrations/initial_root_password
+            - name: postgresql-secrets
+              mountPath: /etc/postgresql-secrets
 {{ include "gitlab.extraVolumeMounts" . | indent 12 }}
 {{ include "gitlab.certificates.volumeMount" . | indent 12 }}
           resources:
@@ -114,11 +114,6 @@ spec:
                 - key: {{ template "gitlab.psql.password.key" . }}
                   path: postgres/psql-password
           - secret:
-              name: {{ template "gitlab.psql.superuser.password.secret" . }}
-              items:
-                - key: {{ template "gitlab.psql.superuser.password.key" . }}
-                  path: postgres/superuser-password
-          - secret:
               name: {{ template "gitlab.migrations.initialRootPassword.secret" . }}
               items:
                 - key: {{ template "gitlab.migrations.initialRootPassword.key" . }}
@@ -126,6 +121,20 @@ spec:
       - name: migrations-secrets
         emptyDir:
           medium: "Memory"
+      - name: postgresql-secrets
+        projected:
+          defaultMode: 0400
+          sources:
+          - secret:
+              name: {{ template "gitlab.psql.password.secret" . }}
+              items:
+                - key: {{ template "gitlab.psql.password.key" . }}
+                  path: application-password
+          - secret:
+              name: {{ template "gitlab.psql.superuser.password.secret" . }}
+              items:
+                - key: {{ template "gitlab.psql.superuser.password.key" . }}
+                  path: superuser-password
 {{ include "gitlab.certificates.volumes" . | indent 6 }}
     {{- if .Values.nodeSelector }}
       nodeSelector:
